@@ -36,7 +36,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class SoundRegistryTest {
+public class SoundMappingCoverage {
 
     @Test
     public void fromJava_BuiltinSounds_translatedCorrectly() {

@@ -36,7 +36,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
-public class EffectRegistryTest {
+public class EffectMappingCoverage {
     static Set<ParticleType> particleTypesWithAdditionalData = new HashSet<>();
     static {
         particleTypesWithAdditionalData.add(ParticleType.BLOCK);

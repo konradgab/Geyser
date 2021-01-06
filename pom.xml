@@ -34,6 +34,7 @@
         <module>bootstrap</module>
         <module>common</module>
         <module>connector</module>
+        <module>test</module>
     </modules>
 
     <repositories>

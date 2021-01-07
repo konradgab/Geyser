@@ -157,8 +157,10 @@ public class IntegrationTest {
                 throw new IllegalStateException();
             }
             assertEquals(bedrockPong.getMotd(), "Test.");
+            assertEquals(bedrockPong.getSubMotd(), "");
             assertEquals(bedrockPong.getPlayerCount(), 1);
             assertEquals(bedrockPong.getMaximumPlayerCount(), 101);
+            assertEquals(bedrockPong.getProtocolVersion(), BedrockProtocol.DEFAULT_BEDROCK_CODEC.getProtocolVersion());
         }).join();
 
         connector.shutdown();

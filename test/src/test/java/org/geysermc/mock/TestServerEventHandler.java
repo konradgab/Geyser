@@ -23,7 +23,7 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.util;
+package org.geysermc.mock;
 
 import com.nukkitx.protocol.bedrock.BedrockServerSession;
 import org.geysermc.connector.GeyserConnector;

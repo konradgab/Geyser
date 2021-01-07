@@ -23,7 +23,7 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.util;
+package org.geysermc.mock;
 
 import org.geysermc.connector.configuration.GeyserJacksonConfiguration;
 
@@ -35,5 +35,25 @@ public class TestConfiguration extends GeyserJacksonConfiguration {
     @Override
     public Path getFloodgateKeyPath() {
         return Paths.get(".");
+    }
+
+    @Override
+    public boolean isPassthroughMotd() {
+        return true;
+    }
+
+    @Override
+    public boolean isPassthroughPlayerCounts() {
+        return true;
+    }
+
+    @Override
+    public boolean isPassthroughProtocolName() {
+        return true;
+    }
+
+    @Override
+    public int getPingPassthroughInterval() {
+        return 1;
     }
 }

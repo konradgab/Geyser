@@ -27,14 +27,21 @@ package org.geysermc;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.steveice10.mc.auth.data.GameProfile;
 import com.github.steveice10.mc.auth.service.SessionService;
 import com.github.steveice10.mc.protocol.MinecraftConstants;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
+import com.github.steveice10.mc.protocol.data.status.PlayerInfo;
+import com.github.steveice10.mc.protocol.data.status.ServerStatusInfo;
+import com.github.steveice10.mc.protocol.data.status.VersionInfo;
+import com.github.steveice10.mc.protocol.data.status.handler.ServerInfoBuilder;
 import com.github.steveice10.packetlib.Server;
+import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.packet.ResourcePackClientResponsePacket;
 import com.nukkitx.protocol.bedrock.packet.TextPacket;
+import net.kyori.adventure.text.Component;
 import org.geysermc.common.PlatformType;
 import org.geysermc.connector.GeyserConnector;
 import org.geysermc.connector.GeyserLogger;
@@ -45,10 +52,12 @@ import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.network.session.auth.AuthData;
 import org.geysermc.connector.network.session.auth.BedrockClientData;
-import org.geysermc.util.TestConfiguration;
-import org.geysermc.util.TestLogger;
-import org.geysermc.util.TestServerAdapter;
-import org.geysermc.util.TestServerEventHandler;
+import org.geysermc.connector.ping.GeyserLegacyPingPassthrough;
+import org.geysermc.connector.ping.IGeyserPingPassthrough;
+import org.geysermc.mock.TestConfiguration;
+import org.geysermc.mock.TestLogger;
+import org.geysermc.mock.TestServerAdapter;
+import org.geysermc.mock.TestServerEventHandler;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -86,6 +95,10 @@ public class IntegrationTest {
 
         BedrockClient client = startBedrockClient();
 
+        InetSocketAddress connectionAddress = new InetSocketAddress("127.0.0.1", 19132);
+        client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
+        client.getSession().setLogging(false);
+
         Thread.sleep(200);
 
         session.get().setAuthData(new AuthData("TestSession", UUID.randomUUID(), "0"));
@@ -114,6 +127,40 @@ public class IntegrationTest {
         connector.shutdown();
 
         assertEquals(serverAdapter.getChatMessage(), Collections.singletonList("Test: Test"));
+    }
+
+    @Test
+    public void pingPassthrough() throws IOException, InterruptedException {
+        Server javaServer = startJavaServer();
+
+        javaServer.setGlobalFlag(MinecraftConstants.SERVER_INFO_BUILDER_KEY, (ServerInfoBuilder) session -> new ServerStatusInfo(
+                new VersionInfo(MinecraftConstants.GAME_VERSION, MinecraftConstants.PROTOCOL_VERSION),
+                new PlayerInfo(101, 1, new GameProfile[0]),
+                Component.text("Test."),
+                null
+        ));
+
+        javaServer.bind();
+
+        AtomicReference<GeyserSession> session = new AtomicReference<>();
+
+        GeyserConnector connector = startGeyser(session);
+        IGeyserPingPassthrough pingPassthrough = GeyserLegacyPingPassthrough.init(connector);
+        when(connector.getBootstrap().getGeyserPingPassthrough()).thenReturn(pingPassthrough);
+
+        Thread.sleep(1500);
+
+        BedrockClient client = startBedrockClient();
+
+        InetSocketAddress pingAddress = new InetSocketAddress("127.0.0.1", 19132);
+        client.ping(pingAddress).whenComplete((bedrockPong, throwable) -> {
+            if (bedrockPong == null) {
+                throw new IllegalStateException();
+            }
+            assertEquals(bedrockPong.getMotd(), "Test.");
+            assertEquals(bedrockPong.getPlayerCount(), 1);
+            assertEquals(bedrockPong.getMaximumPlayerCount(), 101);
+        }).join();
     }
 
     private Server startJavaServer() {
@@ -158,12 +205,7 @@ public class IntegrationTest {
         BedrockClient client = new BedrockClient(address);
 
         client.bind().join();
-        InetSocketAddress connectionAddress = new InetSocketAddress("127.0.0.1", 19132);
-        client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
-        client.getSession().setLogging(false);
 
         return client;
     }
-
-
 }

@@ -36,7 +36,6 @@ import com.github.steveice10.mc.protocol.data.status.ServerStatusInfo;
 import com.github.steveice10.mc.protocol.data.status.VersionInfo;
 import com.github.steveice10.mc.protocol.data.status.handler.ServerInfoBuilder;
 import com.github.steveice10.packetlib.Server;
-import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.packet.ResourcePackClientResponsePacket;
@@ -125,6 +124,8 @@ public class IntegrationTest {
         Thread.sleep(200);
 
         connector.shutdown();
+        javaServer.close();
+        client.close();
 
         assertEquals(serverAdapter.getChatMessage(), Collections.singletonList("Test: Test"));
     }
@@ -145,8 +146,6 @@ public class IntegrationTest {
         AtomicReference<GeyserSession> session = new AtomicReference<>();
 
         GeyserConnector connector = startGeyser(session);
-        IGeyserPingPassthrough pingPassthrough = GeyserLegacyPingPassthrough.init(connector);
-        when(connector.getBootstrap().getGeyserPingPassthrough()).thenReturn(pingPassthrough);
 
         Thread.sleep(1500);
 
@@ -161,6 +160,10 @@ public class IntegrationTest {
             assertEquals(bedrockPong.getPlayerCount(), 1);
             assertEquals(bedrockPong.getMaximumPlayerCount(), 101);
         }).join();
+
+        connector.shutdown();
+        javaServer.close();
+        client.close();
     }
 
     private Server startJavaServer() {
@@ -193,6 +196,9 @@ public class IntegrationTest {
         when(bootstrap.getConfigFolder()).thenReturn(testPath);
 
         GeyserConnector connector = GeyserConnector.start(PlatformType.STANDALONE, bootstrap);
+
+        IGeyserPingPassthrough pingPassthrough = GeyserLegacyPingPassthrough.init(connector);
+        when(connector.getBootstrap().getGeyserPingPassthrough()).thenReturn(pingPassthrough);
 
         TestServerEventHandler testServerEventHandler = new TestServerEventHandler(connector, session::set);
         connector.getBedrockServer().setHandler(testServerEventHandler);

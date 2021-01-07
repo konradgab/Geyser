@@ -30,6 +30,7 @@ import com.nukkitx.protocol.bedrock.data.LevelEventType;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,12 +38,30 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 
 public class EffectMappingCoverage {
-    static Set<ParticleType> particleTypesWithAdditionalData = new HashSet<>();
+    private static final Set<ParticleType> particleTypesWithAdditionalData = new HashSet<>();
+    private static final Set<ParticleType> knownMissingParticles = new HashSet<>();
+
     static {
         particleTypesWithAdditionalData.add(ParticleType.BLOCK);
         particleTypesWithAdditionalData.add(ParticleType.DUST);
         particleTypesWithAdditionalData.add(ParticleType.FALLING_DUST);
         particleTypesWithAdditionalData.add(ParticleType.ITEM);
+
+        knownMissingParticles.add(ParticleType.LANDING_HONEY);
+        knownMissingParticles.add(ParticleType.DRIPPING_OBBSIDIAN_TEAR);
+        knownMissingParticles.add(ParticleType.ELDER_GUARDIAN);
+        knownMissingParticles.add(ParticleType.WARPED_SPORE);
+        knownMissingParticles.add(ParticleType.UNDERWATER);
+        knownMissingParticles.add(ParticleType.CRIMSON_SPORE);
+        knownMissingParticles.add(ParticleType.ASH);
+        knownMissingParticles.add(ParticleType.SWEEP_ATTACK);
+        knownMissingParticles.add(ParticleType.LANDING_LAVA);
+        knownMissingParticles.add(ParticleType.LANDING_OBSIDIAN_TEAR);
+        knownMissingParticles.add(ParticleType.WHITE_ASH);
+        knownMissingParticles.add(ParticleType.DAMAGE_INDICATOR);
+        knownMissingParticles.add(ParticleType.ENCHANTED_HIT);
+        knownMissingParticles.add(ParticleType.REVERSE_PORTAL);
+        knownMissingParticles.add(ParticleType.BARRIER);
     }
 
     @Test
@@ -62,12 +81,19 @@ public class EffectMappingCoverage {
                 }
             }
         }
+
         missingParticle.removeAll(particleTypesWithAdditionalData);
-        try {
-            assertEquals(missingParticle.size(), 0);
-        } catch (AssertionError error) {
-            System.err.println("Missing particle mappings: " + missingParticle);
-        }
+        List<ParticleType> missingParticlesCopy = new ArrayList<>(missingParticle);
+        missingParticlesCopy.removeAll(knownMissingParticles);
+
+        List<ParticleType> knownMissingParticlesCopy = new ArrayList<>(knownMissingParticles);
+        knownMissingParticlesCopy.removeAll(missingParticle);
+
+        List<ParticleType> nolongerMissing = new ArrayList<>(knownMissingParticlesCopy);
+        nolongerMissing.removeAll(knownMissingParticlesCopy);
+
+        assertEquals("Missing effects mappings: ", missingParticlesCopy, Collections.emptyList());
+        assertEquals("No longer missing effects mappings: ", nolongerMissing, Collections.emptyList());
     }
 
 }

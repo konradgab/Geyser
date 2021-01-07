@@ -49,7 +49,7 @@ public class TestServerEventHandler extends ConnectorServerEventHandler {
     public void onSessionCreation(BedrockServerSession bedrockServerSession) {
         bedrockServerSession.setLogging(true);
         GeyserSession session = new GeyserSession(connector, bedrockServerSession);
-        bedrockServerSession.setPacketHandler(new UpstreamPacketHandler(this. connector, session));
+        bedrockServerSession.setPacketHandler(new UpstreamPacketHandler(this.connector, session));
         sessionConsumer.accept(session);
         // Set the packet codec to default just in case we need to send disconnect packets.
         bedrockServerSession.setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);

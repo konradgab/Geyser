@@ -26,14 +26,8 @@
 package org.geysermc.connector.network.translators.sound;
 
 import com.github.steveice10.mc.protocol.data.game.world.sound.BuiltinSound;
-import com.nukkitx.protocol.bedrock.data.LevelEventType;
-import com.nukkitx.protocol.bedrock.data.SoundEvent;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class SoundMappingCoverage {
@@ -46,37 +40,6 @@ public class SoundMappingCoverage {
             SoundRegistry.SoundMapping soundMapping = SoundRegistry.fromJava(builtinSound.getName());
 
             assertNotNull("Expected sound mapping for: " + builtinSound, soundMapping);
-        }
-    }
-
-    //Test if there are all BuiltinSounds mapped to corresponding bedrock packets
-    @Test
-    public void toSoundEvent_BuiltinSound_allMapped() {
-        List<String> missingMappings = new ArrayList<>();
-        BuiltinSound[] builtinSounds = BuiltinSound.values();
-
-        for (BuiltinSound builtinSound : builtinSounds) {
-            SoundRegistry.SoundMapping soundMapping = SoundRegistry.fromJava(builtinSound.getName());
-
-            if (soundMapping.isLevelEvent()) {
-                LevelEventType.valueOf(soundMapping.getBedrock());
-            } else if (soundMapping.getPlaysound() == null) {
-                SoundEvent sound = SoundRegistry.toSoundEvent(soundMapping.getBedrock());
-
-                if (sound == null) {
-                    sound = SoundRegistry.toSoundEvent(builtinSound.getName());
-                }
-
-                if (sound == null) {
-                    missingMappings.add(builtinSound.getName());
-                }
-            }
-        }
-
-        try {
-            assertEquals(missingMappings.size(), 0);
-        } catch (AssertionError error) {
-            System.err.println("Missing mappings: " + missingMappings);
         }
     }
 

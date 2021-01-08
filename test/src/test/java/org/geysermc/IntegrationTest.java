@@ -35,7 +35,9 @@ import com.github.steveice10.mc.protocol.data.status.PlayerInfo;
 import com.github.steveice10.mc.protocol.data.status.ServerStatusInfo;
 import com.github.steveice10.mc.protocol.data.status.VersionInfo;
 import com.github.steveice10.mc.protocol.data.status.handler.ServerInfoBuilder;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerChatPacket;
 import com.github.steveice10.packetlib.Server;
+import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.packet.ResourcePackClientResponsePacket;
@@ -181,7 +183,7 @@ public class IntegrationTest {
         return server;
     }
 
-    private GeyserConnector startGeyser(AtomicReference<GeyserSession> session) throws IOException {
+    private GeyserConnector startGeyser(AtomicReference<GeyserSession> session) throws IOException, InterruptedException {
         GeyserJacksonConfiguration configuration = new TestConfiguration();
         configuration.getRemote().setAddress("127.0.0.1");
 
@@ -198,6 +200,10 @@ public class IntegrationTest {
         when(bootstrap.getConfigFolder()).thenReturn(testPath);
 
         GeyserConnector connector = GeyserConnector.start(PlatformType.STANDALONE, bootstrap);
+
+        while(connector.getMetrics() == null) {
+            Thread.sleep(1000);
+        }
 
         IGeyserPingPassthrough pingPassthrough = GeyserLegacyPingPassthrough.init(connector);
         when(connector.getBootstrap().getGeyserPingPassthrough()).thenReturn(pingPassthrough);

@@ -31,11 +31,14 @@ import com.github.steveice10.mc.auth.data.GameProfile;
 import com.github.steveice10.mc.auth.service.SessionService;
 import com.github.steveice10.mc.protocol.MinecraftConstants;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
+import com.github.steveice10.mc.protocol.data.game.MessageType;
 import com.github.steveice10.mc.protocol.data.status.PlayerInfo;
 import com.github.steveice10.mc.protocol.data.status.ServerStatusInfo;
 import com.github.steveice10.mc.protocol.data.status.VersionInfo;
 import com.github.steveice10.mc.protocol.data.status.handler.ServerInfoBuilder;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerChatPacket;
 import com.github.steveice10.packetlib.Server;
+import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.packet.ResourcePackClientResponsePacket;
@@ -53,10 +56,7 @@ import org.geysermc.connector.network.session.auth.AuthData;
 import org.geysermc.connector.network.session.auth.BedrockClientData;
 import org.geysermc.connector.ping.GeyserLegacyPingPassthrough;
 import org.geysermc.connector.ping.IGeyserPingPassthrough;
-import org.geysermc.mock.TestConfiguration;
-import org.geysermc.mock.TestLogger;
-import org.geysermc.mock.TestServerAdapter;
-import org.geysermc.mock.TestServerEventHandler;
+import org.geysermc.mock.*;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -77,6 +77,56 @@ import static org.mockito.Mockito.when;
 
 public class IntegrationTest {
     private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+    @Test
+    public void passFromServerToClient() throws IOException, InterruptedException {
+        Server javaServer = startJavaServer();
+
+        javaServer.bind();
+
+        AtomicReference<GeyserSession> session = new AtomicReference<>();
+
+        GeyserConnector connector = startGeyser(session);
+
+        BedrockClient client = startBedrockClient();
+
+        InetSocketAddress connectionAddress = new InetSocketAddress("127.0.0.1", 19132);
+        client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
+        client.getSession().setLogging(false);
+
+        Thread.sleep(200);
+
+        session.get().setAuthData(new AuthData("TestSession", UUID.randomUUID(), "0"));
+        session.get().setClientData(JSON_MAPPER.readValue("{\"LanguageCode\":\"en_us\"}", BedrockClientData.class));
+
+        ResourcePackClientResponsePacket packet1 = new ResourcePackClientResponsePacket();
+        packet1.setStatus(ResourcePackClientResponsePacket.Status.COMPLETED);
+        client.getSession().sendPacketImmediately(packet1);
+
+        Thread.sleep(200);
+
+        session.get().authenticate("Test");
+
+        Thread.sleep(1000);
+
+        ServerChatPacket packet2 = new ServerChatPacket("Test", MessageType.CHAT, UUID.randomUUID());
+        Session testSession = javaServer.getSessions().stream()
+                .filter(s -> ((GameProfile) s.getFlag(MinecraftConstants.PROFILE_KEY)).getName().equals("Test"))
+                .findFirst()
+                .get();
+
+        TestClientHandler testClientHandler = new TestClientHandler();
+        client.getSession().setPacketHandler(testClientHandler);
+        testSession.send(packet2);
+
+        Thread.sleep(200);
+
+        connector.shutdown();
+        javaServer.close();
+        client.close();
+
+        assertEquals(testClientHandler.getChatMessage(), Collections.singletonList("Test"));
+    }
 
     @Test
     public void passFromClientToServer() throws IOException, InterruptedException {

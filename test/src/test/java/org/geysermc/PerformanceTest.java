@@ -53,6 +53,7 @@ public class PerformanceTest {
 
     private final Map<BedrockPacket, List<Long>> warmUpDirectClientConnectionTimes = new HashMap<>();
     private final Map<BedrockPacket, List<Long>> directClientConnectionTimes = new HashMap<>();
+    private final Map<BedrockPacket, List<Long>> warmUpGeyserClientConnectionTimes = new HashMap<>();
     private final Map<BedrockPacket, List<Long>> geyserClientConnectionTimes = new HashMap<>();
 
     private final Map<BedrockPacket, Long> clientPackets = new LinkedHashMap<>();

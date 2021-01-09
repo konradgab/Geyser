@@ -68,7 +68,7 @@ public class TestServerEventHandler implements BedrockServerEventHandler {
     @Override
     public void onSessionCreation(BedrockServerSession bedrockServerSession) {
         bedrockServerSession.setLogging(true);
-        bedrockServerSession.setPacketHandler(new TestPacketHandler(sendPacket, directClientConnectionTimes));
+        bedrockServerSession.setPacketHandler(new TestServerPacketHandler(sendPacket, directClientConnectionTimes));
         // Set the packet codec to default just in case we need to send disconnect packets.
         bedrockServerSession.setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
     }

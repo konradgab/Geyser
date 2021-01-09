@@ -191,11 +191,11 @@ import com.nukkitx.protocol.bedrock.packet.VideoStreamConnectPacket;
 import java.util.List;
 import java.util.Map;
 
-public class TestPacketHandler implements BedrockPacketHandler {
+public class TestServerPacketHandler implements BedrockPacketHandler {
     private final Map<BedrockPacket, Long> sendPacket;
     private final Map<BedrockPacket, List<Long>> directClientConnectionTimes;
 
-    public TestPacketHandler(Map<BedrockPacket, Long> sendPacket, Map<BedrockPacket, List<Long>> directClientConnectionTimes) {
+    public TestServerPacketHandler(Map<BedrockPacket, Long> sendPacket, Map<BedrockPacket, List<Long>> directClientConnectionTimes) {
         this.sendPacket = sendPacket;
         this.directClientConnectionTimes = directClientConnectionTimes;
     }

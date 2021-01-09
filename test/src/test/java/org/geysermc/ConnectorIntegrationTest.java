@@ -46,7 +46,7 @@ import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.network.session.auth.AuthData;
 import org.geysermc.connector.network.session.auth.BedrockClientData;
-import org.geysermc.mock.TestClientHandler;
+import org.geysermc.mock.TestClientPacketHandler;
 import org.geysermc.mock.TestServerAdapter;
 import org.junit.Test;
 
@@ -107,8 +107,8 @@ public class ConnectorIntegrationTest {
                 .findFirst()
                 .orElseThrow(IllegalStateException::new);
 
-        TestClientHandler testClientHandler = new TestClientHandler();
-        client.getSession().setPacketHandler(testClientHandler);
+        TestClientPacketHandler testClientPacketHandler = new TestClientPacketHandler();
+        client.getSession().setPacketHandler(testClientPacketHandler);
 
         testSession.send(packet2);
 
@@ -118,7 +118,7 @@ public class ConnectorIntegrationTest {
         javaServer.close();
         client.close();
 
-        assertEquals(testClientHandler.getChatMessage(), Collections.singletonList("Test"));
+        assertEquals(testClientPacketHandler.getChatMessage(), Collections.singletonList("Test"));
     }
 
     @Test

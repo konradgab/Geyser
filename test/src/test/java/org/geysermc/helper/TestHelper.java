@@ -42,7 +42,7 @@ import org.geysermc.connector.ping.GeyserLegacyPingPassthrough;
 import org.geysermc.connector.ping.IGeyserPingPassthrough;
 import org.geysermc.mock.TestConfiguration;
 import org.geysermc.mock.TestLogger;
-import org.geysermc.mock.TestServerEventHandler;
+import org.geysermc.mock.TestConnectorServerEventHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -97,8 +97,8 @@ public class TestHelper {
         IGeyserPingPassthrough pingPassthrough = GeyserLegacyPingPassthrough.init(connector);
         when(connector.getBootstrap().getGeyserPingPassthrough()).thenReturn(pingPassthrough);
 
-        TestServerEventHandler testServerEventHandler = new TestServerEventHandler(connector, session::set);
-        connector.getBedrockServer().setHandler(testServerEventHandler);
+        TestConnectorServerEventHandler testConnectorServerEventHandler = new TestConnectorServerEventHandler(connector, session::set);
+        connector.getBedrockServer().setHandler(testConnectorServerEventHandler);
 
         return connector;
     }

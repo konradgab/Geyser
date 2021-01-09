@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-public class TestClientHandler implements BedrockPacketHandler {
+public class TestClientPacketHandler implements BedrockPacketHandler {
     private final List<String> chatMessage = new ArrayList<>();
 
     @Override

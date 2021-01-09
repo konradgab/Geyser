@@ -28,9 +28,7 @@ package org.geysermc;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.steveice10.mc.auth.data.GameProfile;
-import com.github.steveice10.mc.auth.service.SessionService;
 import com.github.steveice10.mc.protocol.MinecraftConstants;
-import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import com.github.steveice10.mc.protocol.data.game.MessageType;
 import com.github.steveice10.mc.protocol.data.status.PlayerInfo;
 import com.github.steveice10.mc.protocol.data.status.ServerStatusInfo;
@@ -39,41 +37,29 @@ import com.github.steveice10.mc.protocol.data.status.handler.ServerInfoBuilder;
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerChatPacket;
 import com.github.steveice10.packetlib.Server;
 import com.github.steveice10.packetlib.Session;
-import com.github.steveice10.packetlib.tcp.TcpSessionFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.packet.ResourcePackClientResponsePacket;
 import com.nukkitx.protocol.bedrock.packet.TextPacket;
 import net.kyori.adventure.text.Component;
-import org.geysermc.common.PlatformType;
 import org.geysermc.connector.GeyserConnector;
-import org.geysermc.connector.GeyserLogger;
-import org.geysermc.connector.bootstrap.GeyserBootstrap;
-import org.geysermc.connector.command.CommandManager;
-import org.geysermc.connector.configuration.GeyserJacksonConfiguration;
 import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.network.session.auth.AuthData;
 import org.geysermc.connector.network.session.auth.BedrockClientData;
-import org.geysermc.connector.ping.GeyserLegacyPingPassthrough;
-import org.geysermc.connector.ping.IGeyserPingPassthrough;
-import org.geysermc.mock.*;
+import org.geysermc.mock.TestClientHandler;
+import org.geysermc.mock.TestServerAdapter;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.geysermc.helper.TestHelper.startBedrockClient;
+import static org.geysermc.helper.TestHelper.startGeyser;
+import static org.geysermc.helper.TestHelper.startJavaServer;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ConnectorIntegrationTest {
     private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
@@ -94,7 +80,9 @@ public class ConnectorIntegrationTest {
         client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
         client.getSession().setLogging(false);
 
-        Thread.sleep(200);
+        while (session.get() == null) {
+            Thread.sleep(200);
+        }
 
         session.get().setAuthData(new AuthData("TestSession", UUID.randomUUID(), "0"));
         session.get().setClientData(JSON_MAPPER.readValue("{\"LanguageCode\":\"en_us\"}", BedrockClientData.class));
@@ -103,20 +91,25 @@ public class ConnectorIntegrationTest {
         packet1.setStatus(ResourcePackClientResponsePacket.Status.COMPLETED);
         client.getSession().sendPacketImmediately(packet1);
 
-        Thread.sleep(200);
+        while (session.get().getRemoteServer() == null) {
+            Thread.sleep(200);
+        }
 
         session.get().authenticate("Test");
 
-        Thread.sleep(1000);
+        while (!connector.getPlayers().contains(session.get())) {
+            Thread.sleep(200);
+        }
 
-        ServerChatPacket packet2 = new ServerChatPacket("Test", MessageType.CHAT, UUID.randomUUID());
+        ServerChatPacket packet2 = new ServerChatPacket("Test", MessageType.CHAT);
         Session testSession = javaServer.getSessions().stream()
                 .filter(s -> ((GameProfile) s.getFlag(MinecraftConstants.PROFILE_KEY)).getName().equals("Test"))
                 .findFirst()
-                .get();
+                .orElseThrow(IllegalStateException::new);
 
         TestClientHandler testClientHandler = new TestClientHandler();
         client.getSession().setPacketHandler(testClientHandler);
+
         testSession.send(packet2);
 
         Thread.sleep(200);
@@ -148,7 +141,9 @@ public class ConnectorIntegrationTest {
         client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
         client.getSession().setLogging(false);
 
-        Thread.sleep(200);
+        while (session.get() == null) {
+            Thread.sleep(200);
+        }
 
         session.get().setAuthData(new AuthData("TestSession", UUID.randomUUID(), "0"));
         session.get().setClientData(JSON_MAPPER.readValue("{\"LanguageCode\":\"en_us\"}", BedrockClientData.class));
@@ -157,11 +152,15 @@ public class ConnectorIntegrationTest {
         packet1.setStatus(ResourcePackClientResponsePacket.Status.COMPLETED);
         client.getSession().sendPacketImmediately(packet1);
 
-        Thread.sleep(200);
+        while (session.get().getRemoteServer() == null) {
+            Thread.sleep(200);
+        }
 
         session.get().authenticate("Test");
 
-        Thread.sleep(1000);
+        while (!connector.getPlayers().contains(session.get())) {
+            Thread.sleep(200);
+        }
 
         TextPacket packet2 = new TextPacket();
         packet2.setMessage("Test");
@@ -216,58 +215,5 @@ public class ConnectorIntegrationTest {
         connector.shutdown();
         javaServer.close();
         client.close();
-    }
-
-    private Server startJavaServer() {
-        SessionService sessionService = new SessionService();
-        sessionService.setProxy(Proxy.NO_PROXY);
-
-        Server server = new Server("0.0.0.0", 25565, MinecraftProtocol.class, new TcpSessionFactory());
-        server.setGlobalFlag(MinecraftConstants.SESSION_SERVICE_KEY, sessionService);
-        server.setGlobalFlag(MinecraftConstants.VERIFY_USERS_KEY, false);
-
-        server.setGlobalFlag(MinecraftConstants.SERVER_COMPRESSION_THRESHOLD, 100);
-
-        return server;
-    }
-
-    private GeyserConnector startGeyser(AtomicReference<GeyserSession> session) throws IOException, InterruptedException {
-        GeyserJacksonConfiguration configuration = new TestConfiguration();
-        configuration.getRemote().setAddress("127.0.0.1");
-
-        CommandManager commandManager = mock(CommandManager.class);
-        GeyserLogger logger = new TestLogger();
-
-        GeyserBootstrap bootstrap = mock(GeyserBootstrap.class, CALLS_REAL_METHODS);
-        when(bootstrap.getGeyserConfig()).thenReturn(configuration);
-        when(bootstrap.getGeyserLogger()).thenReturn(logger);
-        when(bootstrap.getGeyserCommandManager()).thenReturn(commandManager);
-
-        Path testPath = Paths.get("testData");
-        Files.createDirectories(testPath);
-        when(bootstrap.getConfigFolder()).thenReturn(testPath);
-
-        GeyserConnector connector = GeyserConnector.start(PlatformType.STANDALONE, bootstrap);
-
-        while(connector.getMetrics() == null) {
-            Thread.sleep(1000);
-        }
-
-        IGeyserPingPassthrough pingPassthrough = GeyserLegacyPingPassthrough.init(connector);
-        when(connector.getBootstrap().getGeyserPingPassthrough()).thenReturn(pingPassthrough);
-
-        TestServerEventHandler testServerEventHandler = new TestServerEventHandler(connector, session::set);
-        connector.getBedrockServer().setHandler(testServerEventHandler);
-
-        return connector;
-    }
-
-    private BedrockClient startBedrockClient() {
-        InetSocketAddress address = new InetSocketAddress("0.0.0.0", ThreadLocalRandom.current().nextInt(20000, 60000));
-        BedrockClient client = new BedrockClient(address);
-
-        client.bind().join();
-
-        return client;
     }
 }

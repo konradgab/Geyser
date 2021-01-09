@@ -27,23 +27,20 @@ package org.geysermc.mock;
 
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.TextPacket;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
 public class TestClientHandler implements BedrockPacketHandler {
     private final List<String> chatMessage = new ArrayList<>();
 
-    public List<String> getChatMessage() {
-        return chatMessage;
-    }
-
     @Override
     public boolean handle(TextPacket textPacket) {
+        System.out.println(textPacket);
         chatMessage.add(textPacket.getMessage());
         return true;
     }
-
-
 
 }

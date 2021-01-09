@@ -23,43 +23,8 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.mock;
+package org.geysermc;
 
-import org.geysermc.connector.configuration.GeyserJacksonConfiguration;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-public class TestConfiguration extends GeyserJacksonConfiguration {
-
-    @Override
-    public Path getFloodgateKeyPath() {
-        return Paths.get(".");
-    }
-
-    @Override
-    public boolean isPassthroughMotd() {
-        return true;
-    }
-
-    @Override
-    public boolean isPassthroughPlayerCounts() {
-        return true;
-    }
-
-    @Override
-    public boolean isPassthroughProtocolName() {
-        return true;
-    }
-
-    @Override
-    public int getPingPassthroughInterval() {
-        return 1;
-    }
-
-    @Override
-    public String getDefaultLocale() {
-        return "en_us";
-    }
+public class PerformanceTest {
 
 }

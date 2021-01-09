@@ -66,7 +66,7 @@ public class EffectMappingCoverage {
 
     @Test
     public void particleType_allMappedWithoutAdditionalData() {
-        Set<ParticleType> missingParticle = new HashSet<>();
+        List<ParticleType> missingParticle = new ArrayList<>();
         ParticleType[] particleTypes = ParticleType.values();
 
         for (ParticleType particleType : particleTypes) {

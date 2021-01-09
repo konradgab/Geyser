@@ -28,19 +28,29 @@ package org.geysermc.connector.network.translators.sound;
 import com.github.steveice10.mc.protocol.data.game.world.sound.BuiltinSound;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotNull;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 public class SoundMappingCoverage {
 
     @Test
     public void fromJava_BuiltinSounds_translatedCorrectly() {
+        List<String> missingSounds = new ArrayList<>();
+
         BuiltinSound[] builtinSounds = BuiltinSound.values();
 
         for (BuiltinSound builtinSound : builtinSounds) {
             SoundRegistry.SoundMapping soundMapping = SoundRegistry.fromJava(builtinSound.getName());
 
-            assertNotNull("Expected sound mapping for: " + builtinSound, soundMapping);
+            if (soundMapping == null) {
+                missingSounds.add(builtinSound.getName());
+            }
         }
+
+        assertEquals("Expected sound mappings for: ", missingSounds, Collections.emptyList());
     }
 
 }

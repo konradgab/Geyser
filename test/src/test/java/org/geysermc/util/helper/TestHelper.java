@@ -23,7 +23,7 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.utils.helper;
+package org.geysermc.util.helper;
 
 import com.github.steveice10.mc.auth.service.SessionService;
 import com.github.steveice10.mc.protocol.MinecraftConstants;
@@ -40,9 +40,9 @@ import org.geysermc.connector.configuration.GeyserJacksonConfiguration;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.ping.GeyserLegacyPingPassthrough;
 import org.geysermc.connector.ping.IGeyserPingPassthrough;
-import org.geysermc.utils.mock.TestConfiguration;
-import org.geysermc.utils.mock.TestLogger;
-import org.geysermc.utils.mock.TestConnectorServerEventHandler;
+import org.geysermc.util.mock.TestConfiguration;
+import org.geysermc.util.mock.TestLogger;
+import org.geysermc.util.mock.TestConnectorServerEventHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

@@ -32,7 +32,7 @@ import com.nukkitx.protocol.bedrock.BedrockPacket;
 import com.nukkitx.protocol.bedrock.BedrockServer;
 import com.nukkitx.protocol.bedrock.packet.TextPacket;
 import org.geysermc.connector.network.BedrockProtocol;
-import org.geysermc.utils.handler.TestServerEventHandler;
+import org.geysermc.util.handler.TestServerEventHandler;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,7 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.geysermc.utils.helper.TestHelper.startBedrockClient;
+import static org.geysermc.util.helper.TestHelper.startBedrockClient;
 
 public class PerformanceTest {
     private static final int WARM_UP_ITERATIONS = 10;

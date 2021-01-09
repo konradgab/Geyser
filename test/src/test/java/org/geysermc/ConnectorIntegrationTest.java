@@ -46,8 +46,8 @@ import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.network.session.auth.AuthData;
 import org.geysermc.connector.network.session.auth.BedrockClientData;
-import org.geysermc.mock.TestClientPacketHandler;
-import org.geysermc.mock.TestServerAdapter;
+import org.geysermc.utils.handler.TestClientPacketHandler;
+import org.geysermc.utils.adapter.TestServerAdapter;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -56,9 +56,9 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.geysermc.helper.TestHelper.startBedrockClient;
-import static org.geysermc.helper.TestHelper.startGeyser;
-import static org.geysermc.helper.TestHelper.startJavaServer;
+import static org.geysermc.utils.helper.TestHelper.startBedrockClient;
+import static org.geysermc.utils.helper.TestHelper.startGeyser;
+import static org.geysermc.utils.helper.TestHelper.startJavaServer;
 import static org.junit.Assert.assertEquals;
 
 public class ConnectorIntegrationTest {

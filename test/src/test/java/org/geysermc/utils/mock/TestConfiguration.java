@@ -23,24 +23,43 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.mock;
+package org.geysermc.utils.mock;
 
-import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
-import com.nukkitx.protocol.bedrock.packet.TextPacket;
-import lombok.Getter;
+import org.geysermc.connector.configuration.GeyserJacksonConfiguration;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-@Getter
-public class TestClientPacketHandler implements BedrockPacketHandler {
-    private final List<String> chatMessage = new ArrayList<>();
+public class TestConfiguration extends GeyserJacksonConfiguration {
 
     @Override
-    public boolean handle(TextPacket textPacket) {
-        System.out.println(textPacket);
-        chatMessage.add(textPacket.getMessage());
+    public Path getFloodgateKeyPath() {
+        return Paths.get(".");
+    }
+
+    @Override
+    public boolean isPassthroughMotd() {
         return true;
+    }
+
+    @Override
+    public boolean isPassthroughPlayerCounts() {
+        return true;
+    }
+
+    @Override
+    public boolean isPassthroughProtocolName() {
+        return true;
+    }
+
+    @Override
+    public int getPingPassthroughInterval() {
+        return 1;
+    }
+
+    @Override
+    public String getDefaultLocale() {
+        return "en_us";
     }
 
 }

@@ -25,31 +25,21 @@
 
 package org.geysermc;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nukkitx.protocol.bedrock.Bedrock;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
 import com.nukkitx.protocol.bedrock.BedrockServer;
-import lombok.Getter;
 import org.geysermc.connector.GeyserConnector;
 import org.geysermc.connector.network.BedrockProtocol;
-import org.geysermc.connector.network.translators.PacketTranslator;
 import org.geysermc.connector.network.translators.PacketTranslatorRegistry;
 import org.geysermc.platform.standalone.GeyserStandaloneBootstrap;
 import org.geysermc.util.handler.TestServerEventHandler;
+import org.geysermc.util.runnable.TestSpigotRunnable;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +49,6 @@ import static org.geysermc.util.helper.TestHelper.startBedrockClient;
 public class PerformanceTest {
     private static final int WARM_UP_ITERATIONS = 3;
     private static final int TEST_ITERATIONS = 10;
-
-    private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     private final List<Long> warmUpDirectClientConnectionTimes = new ArrayList<>();
     private final List<Long> directClientConnectionTimes = new ArrayList<>();
@@ -72,7 +60,7 @@ public class PerformanceTest {
     @Before
     @SuppressWarnings("unchecked")
     public void setUp() throws InterruptedException {
-        SpigotRunnable runnable = new SpigotRunnable();
+        TestSpigotRunnable runnable = new TestSpigotRunnable();
         Thread spigotThread = new Thread(runnable, "spigot");
         spigotThread.start();
 
@@ -99,7 +87,7 @@ public class PerformanceTest {
             e.printStackTrace();
         }
 
-        clientPackets = PacketTranslatorRegistry.clientPackets;
+        clientPackets = new LinkedHashMap<>(PacketTranslatorRegistry.clientPackets);
 
         System.out.println(clientPackets);
     }
@@ -136,7 +124,6 @@ public class PerformanceTest {
             long end = System.nanoTime();
 
             warmUpDirectClientConnectionTimes.add(end - start);
-
         }
 
         while (server.getRakNet().getSessionCount() != 1) {
@@ -167,19 +154,3 @@ public class PerformanceTest {
     }
 }
 
-@Getter
-class SpigotRunnable implements Runnable {
-    private BufferedWriter writer;
-
-    @Override
-    public void run() {
-        try {
-            Process proc = Runtime.getRuntime().exec("java -jar paper-1.16.4.jar nogui", null, new File("/Users/extollite/Documents/GitHub/Geyser-test/test/spigot"));
-            writer =  new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
-            new BufferedReader(new InputStreamReader(proc.getInputStream())).lines().forEach(s -> System.out.println("[SPIGOT] "+s));
-            proc.waitFor();
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
-        }
-    }
-}

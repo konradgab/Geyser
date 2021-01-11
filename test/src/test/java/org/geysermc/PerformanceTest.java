@@ -32,8 +32,6 @@ import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
 import com.nukkitx.protocol.bedrock.BedrockServer;
 import com.nukkitx.protocol.bedrock.packet.ResourcePackClientResponsePacket;
-import com.nukkitx.protocol.bedrock.packet.TextPacket;
-import lombok.Getter;
 import org.geysermc.connector.GeyserConnector;
 import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.network.session.GeyserSession;
@@ -41,55 +39,56 @@ import org.geysermc.connector.network.session.auth.AuthData;
 import org.geysermc.connector.network.session.auth.BedrockClientData;
 import org.geysermc.connector.network.translators.PacketTranslatorRegistry;
 import org.geysermc.platform.standalone.GeyserStandaloneBootstrap;
+import org.geysermc.util.adapter.PerformanceServerAdapter;
 import org.geysermc.util.handler.TestServerEventHandler;
-import org.junit.Before;
+import org.geysermc.util.runnable.TestSpigotRunnable;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.geysermc.util.helper.TestHelper.startBedrockClient;
-import static org.geysermc.util.helper.TestHelper.startJavaServer;
 import static org.geysermc.util.helper.TestHelper.startGeyser;
+import static org.geysermc.util.helper.TestHelper.startJavaServer;
 
 public class PerformanceTest {
-    private static final int WARM_UP_ITERATIONS = 3;
-    private static final int TEST_ITERATIONS = 10;
-
     private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+    private static final int WARM_UP_ITERATIONS = 3;
+    private static final int TEST_ITERATIONS = 5;
 
     private final List<Long> warmUpDirectClientConnectionTimes = new ArrayList<>();
     private final List<Long> warmUpConnectionViaGeyserTimes = new ArrayList<>();
     private final List<Long> directClientConnectionTimes = new ArrayList<>();
     private final List<Long> connectionViaGeyserTimes = new ArrayList<>();
 
-    private Map<BedrockPacket, Long> clientPackets = new LinkedHashMap<>();
+    private static Map<BedrockPacket, Long> clientPackets = new LinkedHashMap<>();
 
-    @Before
+    @BeforeClass
     @SuppressWarnings("unchecked")
-    public void setUp() throws InterruptedException {
-        SpigotRunnable runnable = new SpigotRunnable();
+    public static void setUp() throws InterruptedException {
+        TestSpigotRunnable runnable = new TestSpigotRunnable();
         Thread spigotThread = new Thread(runnable, "spigot");
         spigotThread.start();
 
-        new Thread(() -> GeyserStandaloneBootstrap.main(new String[] {"--nogui"}), "geyser").start();
+        new Thread(() -> GeyserStandaloneBootstrap.main(new String[]{"--nogui"}), "geyser").start();
 
         while (GeyserConnector.getInstance() == null) {
             Thread.sleep(1000);
         }
 
-        while(GeyserConnector.getInstance().getPlayers().size() != 1) {
+        while (GeyserConnector.getInstance().getPlayers().size() != 1) {
             Thread.sleep(1000);
         }
 
-        while(GeyserConnector.getInstance().getPlayers().size() == 1) {
+        while (GeyserConnector.getInstance().getPlayers().size() == 1) {
             Thread.sleep(1000);
         }
 
@@ -102,15 +101,20 @@ public class PerformanceTest {
             e.printStackTrace();
         }
 
-        clientPackets = PacketTranslatorRegistry.clientPackets;
+        while(runnable.isWorking()) {
+            Thread.sleep(200);
+        }
 
-        System.out.println(clientPackets);
+        clientPackets = new LinkedHashMap<>(PacketTranslatorRegistry.clientPackets);
+
+        System.out.println(clientPackets.size());
     }
 
     @Test
     public void directClientConnection() throws Exception {
         BedrockServer server = new BedrockServer(new InetSocketAddress("0.0.0.0", 19132));
-        server.setHandler(new TestServerEventHandler());
+        TestServerEventHandler handler = new TestServerEventHandler();
+        server.setHandler(handler);
 
         server.bind().join();
 
@@ -124,36 +128,28 @@ public class PerformanceTest {
             Thread.sleep(10);
         }
 
-        TextPacket packet2 = new TextPacket();
-        packet2.setMessage("Test");
-        packet2.setType(TextPacket.Type.ANNOUNCEMENT);
-        packet2.setNeedsTranslation(false);
-        packet2.setSourceName("Test");
-        packet2.setXuid("0");
-
-        clientPackets.put(packet2, 100L);
-
-
         // WARM UP
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
             System.out.println("Warm-up " + i);
 
             long start = System.nanoTime();
 
+            long counter = 0;
+
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
+                counter++;
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
             }
 
+            while (counter != handler.getPacketHandler().getCounter()) {
+
+            }
+
             long end = System.nanoTime();
 
             warmUpDirectClientConnectionTimes.add(end - start);
-
-        }
-
-        while (server.getRakNet().getSessionCount() != 1) {
-            Thread.sleep(10);
         }
 
         for (int i = 0; i < TEST_ITERATIONS; i++) {
@@ -161,10 +157,16 @@ public class PerformanceTest {
 
             long start = System.nanoTime();
 
+            long counter = 0;
+
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
+                counter++;
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
+            }
+
+            while (counter != handler.getPacketHandler().getCounter()) {
             }
 
             long end = System.nanoTime();
@@ -175,13 +177,17 @@ public class PerformanceTest {
         client.close();
         server.close();
 
-        System.out.println(warmUpDirectClientConnectionTimes);
-        System.out.println(directClientConnectionTimes);
+        System.out.println(warmUpDirectClientConnectionTimes.stream().mapToLong(Long::longValue).average());
+        System.out.println(directClientConnectionTimes.stream().mapToLong(Long::longValue).average());
     }
 
     @Test
-    public void ConnectionViaGeyser() throws IOException, InterruptedException {
+    public void connectionViaGeyser() throws IOException, InterruptedException {
         Server javaServer = startJavaServer();
+
+        PerformanceServerAdapter adapter = new PerformanceServerAdapter();
+
+        javaServer.addListener(adapter);
 
         javaServer.bind();
 
@@ -200,7 +206,7 @@ public class PerformanceTest {
         }
 
         session.get().setAuthData(new AuthData("TestSession", UUID.randomUUID(), "0"));
-        session.get().setClientData(JSON_MAPPER.readValue("{\"LanguageCode\":\"en_us\"}", BedrockClientData.class));
+        session.get().setClientData(JSON_MAPPER.readValue("{\"LanguageCode\":\"en_us\", \"DeviceOS\": \"ANDROID\"}", BedrockClientData.class));
 
         ResourcePackClientResponsePacket packet1 = new ResourcePackClientResponsePacket();
         packet1.setStatus(ResourcePackClientResponsePacket.Status.COMPLETED);
@@ -221,13 +227,24 @@ public class PerformanceTest {
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
             System.out.println("Warm-up " + i);
 
+            adapter.setCounter(0);
+
             long start = System.nanoTime();
 
+            long counter = 0;
+
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
+                counter++;
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
             }
+
+            while (session.get().isClosed()) {
+            }
+
+            System.out.println(adapter.getCounter());
+
 
             long end = System.nanoTime();
 
@@ -235,19 +252,25 @@ public class PerformanceTest {
 
         }
 
-        while (session.get() == null) {
-            Thread.sleep(200);
-        }
-
         for (int i = 0; i < TEST_ITERATIONS; i++) {
             System.out.println(i);
 
+            adapter.setCounter(0);
+
             long start = System.nanoTime();
 
+            long counter = 0;
+
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
+                counter++;
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
+            }
+
+
+            while (counter != adapter.getCounter()) {
+
             }
 
             long end = System.nanoTime();
@@ -257,25 +280,10 @@ public class PerformanceTest {
 
         client.close();
         javaServer.close();
+        connector.shutdown();
 
-        System.out.println(warmUpConnectionViaGeyserTimes);
-        System.out.println(connectionViaGeyserTimes);
+        System.out.println(warmUpConnectionViaGeyserTimes.stream().mapToLong(Long::longValue).average());
+        System.out.println(connectionViaGeyserTimes.stream().mapToLong(Long::longValue).average());
     }
 }
 
-@Getter
-class SpigotRunnable implements Runnable {
-    private BufferedWriter writer;
-
-    @Override
-    public void run() {
-        try {
-            Process proc = Runtime.getRuntime().exec("java -jar paper-1.16.4.jar nogui", null, new File("/Users/extollite/Documents/GitHub/Geyser-test/test/spigot"));
-            writer =  new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
-            new BufferedReader(new InputStreamReader(proc.getInputStream())).lines().forEach(s -> System.out.println("[SPIGOT] "+s));
-            proc.waitFor();
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
-        }
-    }
-}

@@ -29,6 +29,7 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.ServerPlayerListDa
 import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUpdateLightPacket;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
+import com.nukkitx.protocol.bedrock.packet.DisconnectPacket;
 import com.nukkitx.protocol.bedrock.packet.SetLocalPlayerAsInitializedPacket;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.geysermc.connector.GeyserConnector;
@@ -101,7 +102,7 @@ public class PacketTranslatorRegistry<T> {
                         long delay = System.currentTimeMillis() - lastPacket;
                         lastPacket = System.currentTimeMillis();
                         clientPackets.put((BedrockPacket) packet, delay);
-                    }else if (clazz == SetLocalPlayerAsInitializedPacket.class) {
+                    } else if (clazz == SetLocalPlayerAsInitializedPacket.class) {
                         lastPacket = System.currentTimeMillis();
                     }
                     ((PacketTranslator<P>) translators.get(clazz)).translate(packet, session);

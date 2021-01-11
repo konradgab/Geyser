@@ -187,16 +187,19 @@ import com.nukkitx.protocol.bedrock.packet.UpdatePlayerGameTypePacket;
 import com.nukkitx.protocol.bedrock.packet.UpdateSoftEnumPacket;
 import com.nukkitx.protocol.bedrock.packet.UpdateTradePacket;
 import com.nukkitx.protocol.bedrock.packet.VideoStreamConnectPacket;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.util.List;
-import java.util.Map;
-
+@Getter
+@Setter
 public class TestServerPacketHandler implements BedrockPacketHandler {
+    private long counter = 0;
 
     public TestServerPacketHandler() {
     }
 
     boolean defaultHandler(BedrockPacket packet) {
+        counter++;
         return true;
     }
 

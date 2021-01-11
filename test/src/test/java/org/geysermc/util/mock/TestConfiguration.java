@@ -23,7 +23,7 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.mock;
+package org.geysermc.util.mock;
 
 import org.geysermc.connector.configuration.GeyserJacksonConfiguration;
 
@@ -56,4 +56,10 @@ public class TestConfiguration extends GeyserJacksonConfiguration {
     public int getPingPassthroughInterval() {
         return 1;
     }
+
+    @Override
+    public String getDefaultLocale() {
+        return "en_us";
+    }
+
 }

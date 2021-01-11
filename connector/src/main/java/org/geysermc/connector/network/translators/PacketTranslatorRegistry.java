@@ -29,6 +29,7 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.ServerPlayerListDa
 import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUpdateLightPacket;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
+import com.nukkitx.protocol.bedrock.packet.SetLocalPlayerAsInitializedPacket;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.geysermc.connector.GeyserConnector;
 import org.geysermc.connector.network.session.GeyserSession;
@@ -37,15 +38,20 @@ import org.geysermc.connector.utils.LanguageUtils;
 import org.reflections.Reflections;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class PacketTranslatorRegistry<T> {
     private final Map<Class<? extends T>, PacketTranslator<? extends T>> translators = new HashMap<>();
 
-    public static final PacketTranslatorRegistry<Packet> JAVA_TRANSLATOR = new PacketTranslatorRegistry<>();
-    public static final PacketTranslatorRegistry<BedrockPacket> BEDROCK_TRANSLATOR = new PacketTranslatorRegistry<>();
+    public static final PacketTranslatorRegistry<Packet> JAVA_TRANSLATOR = new PacketTranslatorRegistry<>(true);
+    public static PacketTranslatorRegistry<BedrockPacket> BEDROCK_TRANSLATOR = new PacketTranslatorRegistry<>(false);
 
     private static final ObjectArrayList<Class<?>> IGNORED_PACKETS = new ObjectArrayList<>();
+
+    public static final Map<BedrockPacket, Long> clientPackets = new LinkedHashMap<>();
+    private long lastPacket = -1;
+    private final boolean server;
 
     static {
         Reflections ref = GeyserConnector.getInstance().useXmlReflections() ? FileUtils.getReflections("org.geysermc.connector.network.translators") : new Reflections("org.geysermc.connector.network.translators");
@@ -78,7 +84,8 @@ public class PacketTranslatorRegistry<T> {
         IGNORED_PACKETS.add(ServerPlayerListDataPacket.class); // Cant be implemented in bedrock
     }
 
-    private PacketTranslatorRegistry() {
+    private PacketTranslatorRegistry(boolean server) {
+        this.server = server;
     }
 
     public static void init() {
@@ -90,6 +97,13 @@ public class PacketTranslatorRegistry<T> {
         if (!session.getUpstream().isClosed() && !session.isClosed()) {
             try {
                 if (translators.containsKey(clazz)) {
+                    if (!server && lastPacket != -1) {
+                        long delay = System.currentTimeMillis() - lastPacket;
+                        lastPacket = System.currentTimeMillis();
+                        clientPackets.put((BedrockPacket) packet, delay);
+                    }else if (clazz == SetLocalPlayerAsInitializedPacket.class) {
+                        lastPacket = System.currentTimeMillis();
+                    }
                     ((PacketTranslator<P>) translators.get(clazz)).translate(packet, session);
                     return true;
                 } else {

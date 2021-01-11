@@ -23,7 +23,7 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.mock;
+package org.geysermc.util.mock;
 
 import org.geysermc.connector.GeyserLogger;
 import org.geysermc.connector.command.CommandSender;
@@ -31,6 +31,10 @@ import org.geysermc.connector.common.ChatColor;
 
 public class TestLogger implements GeyserLogger, CommandSender {
     private final boolean colored = true;
+
+    public static String printConsole(String message, boolean colors) {
+        return colors ? ChatColor.toANSI(message + ChatColor.RESET) : ChatColor.stripColors(message + ChatColor.RESET);
+    }
 
     @Override
     public void severe(String message) {
@@ -68,17 +72,13 @@ public class TestLogger implements GeyserLogger, CommandSender {
             System.err.println(printConsole(ChatColor.GRAY + message, colored));
     }
 
-    public static String printConsole(String message, boolean colors) {
-        return colors ? ChatColor.toANSI(message + ChatColor.RESET) : ChatColor.stripColors(message + ChatColor.RESET);
+    public boolean isDebug() {
+        return false;
     }
 
     @Override
     public void setDebug(boolean debug) {
         //NOOP
-    }
-
-    public boolean isDebug() {
-        return false;
     }
 
     @Override

@@ -23,7 +23,7 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.mock;
+package org.geysermc.util.adapter;
 
 import com.github.steveice10.mc.auth.data.GameProfile;
 import com.github.steveice10.mc.protocol.MinecraftConstants;
@@ -35,10 +35,12 @@ import com.github.steveice10.packetlib.event.server.SessionAddedEvent;
 import com.github.steveice10.packetlib.event.server.SessionRemovedEvent;
 import com.github.steveice10.packetlib.event.session.PacketReceivedEvent;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
 public class TestServerAdapter extends ServerAdapter {
     private final List<String> chatMessage = new ArrayList<>();
 
@@ -64,7 +66,4 @@ public class TestServerAdapter extends ServerAdapter {
         }
     }
 
-    public List<String> getChatMessage() {
-        return chatMessage;
-    }
 }

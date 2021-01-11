@@ -23,27 +23,24 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.mock;
+package org.geysermc.util.handler;
 
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.TextPacket;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestClientHandler implements BedrockPacketHandler {
+@Getter
+public class TestClientPacketHandler implements BedrockPacketHandler {
     private final List<String> chatMessage = new ArrayList<>();
-
-    public List<String> getChatMessage() {
-        return chatMessage;
-    }
 
     @Override
     public boolean handle(TextPacket textPacket) {
+        System.out.println(textPacket);
         chatMessage.add(textPacket.getMessage());
         return true;
     }
-
-
 
 }

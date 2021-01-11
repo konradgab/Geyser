@@ -30,8 +30,10 @@ import com.github.steveice10.packetlib.event.server.SessionAddedEvent;
 import com.github.steveice10.packetlib.event.session.PacketReceivedEvent;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class PerformanceServerAdapter extends ServerAdapter {
     private long counter = 0;
 

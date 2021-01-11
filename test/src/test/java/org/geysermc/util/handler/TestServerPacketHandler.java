@@ -188,8 +188,10 @@ import com.nukkitx.protocol.bedrock.packet.UpdateSoftEnumPacket;
 import com.nukkitx.protocol.bedrock.packet.UpdateTradePacket;
 import com.nukkitx.protocol.bedrock.packet.VideoStreamConnectPacket;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class TestServerPacketHandler implements BedrockPacketHandler {
     private long counter = 0;
 

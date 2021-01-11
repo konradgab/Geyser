@@ -61,7 +61,7 @@ import static org.geysermc.util.helper.TestHelper.startJavaServer;
 public class PerformanceTest {
     private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    private static final int WARM_UP_ITERATIONS = 1;
+    private static final int WARM_UP_ITERATIONS = 3;
     private static final int TEST_ITERATIONS = 5;
 
     private final List<Long> warmUpDirectClientConnectionTimes = new ArrayList<>();
@@ -167,7 +167,6 @@ public class PerformanceTest {
             }
 
             while (counter != handler.getPacketHandler().getCounter()) {
-
             }
 
             long end = System.nanoTime();
@@ -228,6 +227,8 @@ public class PerformanceTest {
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
             System.out.println("Warm-up " + i);
 
+            adapter.setCounter(0);
+
             long start = System.nanoTime();
 
             long counter = 0;
@@ -239,9 +240,11 @@ public class PerformanceTest {
                 Thread.sleep(entry.getValue());
             }
 
-            while (counter != adapter.getCounter()) {
-
+            while (session.get().isClosed()) {
             }
+
+            System.out.println(adapter.getCounter());
+
 
             long end = System.nanoTime();
 
@@ -251,6 +254,8 @@ public class PerformanceTest {
 
         for (int i = 0; i < TEST_ITERATIONS; i++) {
             System.out.println(i);
+
+            adapter.setCounter(0);
 
             long start = System.nanoTime();
 

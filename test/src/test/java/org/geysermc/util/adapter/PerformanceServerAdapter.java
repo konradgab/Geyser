@@ -23,33 +23,26 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.util.runnable;
+package org.geysermc.util.adapter;
 
+import com.github.steveice10.packetlib.event.server.ServerAdapter;
+import com.github.steveice10.packetlib.event.server.SessionAddedEvent;
+import com.github.steveice10.packetlib.event.session.PacketReceivedEvent;
+import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import lombok.Getter;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-
 @Getter
-public class TestSpigotRunnable implements Runnable {
-    private BufferedWriter writer;
-    private boolean working = true;
+public class PerformanceServerAdapter extends ServerAdapter {
+    private long counter = 0;
 
     @Override
-    public void run() {
-        try {
-            Process proc = Runtime.getRuntime().exec("java -jar paper-1.16.4.jar nogui", null, new File("/Users/extollite/Documents/GitHub/Geyser-test/test/spigot"));
-            working = true;
-            writer =  new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
-            new BufferedReader(new InputStreamReader(proc.getInputStream())).lines().forEach(s -> System.out.println("[SPIGOT] "+s));
-            proc.waitFor();
-            working = false;
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
-        }
+    public void sessionAdded(SessionAddedEvent event) {
+        event.getSession().addListener(new SessionAdapter() {
+            @Override
+            public void packetReceived(PacketReceivedEvent event) {
+                counter++;
+            }
+        });
     }
+
 }

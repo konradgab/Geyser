@@ -31,13 +31,17 @@ import com.nukkitx.protocol.bedrock.BedrockServerEventHandler;
 import com.nukkitx.protocol.bedrock.BedrockServerSession;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
+import lombok.Getter;
 import org.geysermc.connector.network.BedrockProtocol;
 
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 
+@Getter
 public class TestServerEventHandler implements BedrockServerEventHandler {
+    private TestServerPacketHandler packetHandler;
+
     public TestServerEventHandler() {
     }
 
@@ -63,7 +67,8 @@ public class TestServerEventHandler implements BedrockServerEventHandler {
     @Override
     public void onSessionCreation(BedrockServerSession bedrockServerSession) {
         bedrockServerSession.setLogging(true);
-        bedrockServerSession.setPacketHandler(new TestServerPacketHandler());
+        packetHandler = new TestServerPacketHandler();
+        bedrockServerSession.setPacketHandler(packetHandler);
         // Set the packet codec to default just in case we need to send disconnect packets.
         bedrockServerSession.setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
     }

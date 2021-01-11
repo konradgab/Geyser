@@ -139,14 +139,6 @@ public class PerformanceTest {
 
         }
 
-        server.setHandler(new TestServerEventHandler());
-
-        client.close();
-
-        client = startBedrockClient();
-        client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
-        client.getSession().setLogging(false);
-
         while (server.getRakNet().getSessionCount() != 1) {
             Thread.sleep(10);
         }
@@ -165,7 +157,6 @@ public class PerformanceTest {
             long end = System.nanoTime();
 
             directClientConnectionTimes.add(end - start);
-
         }
 
         client.close();

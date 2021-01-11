@@ -106,10 +106,8 @@ public class PerformanceTest {
 
     @Test
     public void directClientConnection() throws Exception {
-        Map<BedrockPacket, Long> sendPacket = new HashMap<>();
-
         BedrockServer server = new BedrockServer(new InetSocketAddress("0.0.0.0", 19132));
-        server.setHandler(new TestServerEventHandler(sendPacket));
+        server.setHandler(new TestServerEventHandler());
 
         server.bind().join();
 
@@ -125,12 +123,11 @@ public class PerformanceTest {
 
         // WARM UP
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
-            System.out.println("Warmpup " + i);
+            System.out.println("Warm-up " + i);
 
             long start = System.nanoTime();
 
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
-                sendPacket.put(entry.getKey(), System.currentTimeMillis());
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
@@ -140,12 +137,9 @@ public class PerformanceTest {
 
             warmUpDirectClientConnectionTimes.add(end - start);
 
-            while (!sendPacket.isEmpty()) {
-                Thread.sleep(10);
-            }
         }
 
-        server.setHandler(new TestServerEventHandler(sendPacket));
+        server.setHandler(new TestServerEventHandler());
 
         client.close();
 
@@ -163,7 +157,6 @@ public class PerformanceTest {
             long start = System.nanoTime();
 
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
-                sendPacket.put(entry.getKey(), System.currentTimeMillis());
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
@@ -173,9 +166,6 @@ public class PerformanceTest {
 
             directClientConnectionTimes.add(end - start);
 
-            while (!sendPacket.isEmpty()) {
-                Thread.sleep(10);
-            }
         }
 
         client.close();

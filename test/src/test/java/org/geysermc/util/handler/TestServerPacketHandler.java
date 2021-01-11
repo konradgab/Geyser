@@ -192,10 +192,8 @@ import java.util.List;
 import java.util.Map;
 
 public class TestServerPacketHandler implements BedrockPacketHandler {
-    private final Map<BedrockPacket, Long> sendPacket;
 
-    public TestServerPacketHandler(Map<BedrockPacket, Long> sendPacket) {
-        this.sendPacket = sendPacket;
+    public TestServerPacketHandler() {
     }
 
     boolean defaultHandler(BedrockPacket packet) {

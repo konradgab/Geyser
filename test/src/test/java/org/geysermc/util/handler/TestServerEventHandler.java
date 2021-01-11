@@ -38,10 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 public class TestServerEventHandler implements BedrockServerEventHandler {
-    private final Map<BedrockPacket, Long> sendPacket;
-
-    public TestServerEventHandler(Map<BedrockPacket, Long> sendPacket) {
-        this.sendPacket = sendPacket;
+    public TestServerEventHandler() {
     }
 
     @Override
@@ -66,7 +63,7 @@ public class TestServerEventHandler implements BedrockServerEventHandler {
     @Override
     public void onSessionCreation(BedrockServerSession bedrockServerSession) {
         bedrockServerSession.setLogging(true);
-        bedrockServerSession.setPacketHandler(new TestServerPacketHandler(sendPacket));
+        bedrockServerSession.setPacketHandler(new TestServerPacketHandler());
         // Set the packet codec to default just in case we need to send disconnect packets.
         bedrockServerSession.setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
     }

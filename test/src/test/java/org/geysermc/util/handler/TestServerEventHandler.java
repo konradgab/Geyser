@@ -39,11 +39,9 @@ import java.util.Map;
 
 public class TestServerEventHandler implements BedrockServerEventHandler {
     private final Map<BedrockPacket, Long> sendPacket;
-    private final Map<BedrockPacket, List<Long>> directClientConnectionTimes;
 
-    public TestServerEventHandler(Map<BedrockPacket, Long> sendPacket, Map<BedrockPacket, List<Long>> directClientConnectionTimes) {
+    public TestServerEventHandler(Map<BedrockPacket, Long> sendPacket) {
         this.sendPacket = sendPacket;
-        this.directClientConnectionTimes = directClientConnectionTimes;
     }
 
     @Override
@@ -68,7 +66,7 @@ public class TestServerEventHandler implements BedrockServerEventHandler {
     @Override
     public void onSessionCreation(BedrockServerSession bedrockServerSession) {
         bedrockServerSession.setLogging(true);
-        bedrockServerSession.setPacketHandler(new TestServerPacketHandler(sendPacket, directClientConnectionTimes));
+        bedrockServerSession.setPacketHandler(new TestServerPacketHandler(sendPacket));
         // Set the packet codec to default just in case we need to send disconnect packets.
         bedrockServerSession.setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
     }

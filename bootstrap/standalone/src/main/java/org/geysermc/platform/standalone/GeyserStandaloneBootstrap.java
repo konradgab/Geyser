@@ -78,6 +78,7 @@ public class GeyserStandaloneBootstrap implements GeyserBootstrap {
 
     private static final Map<String, String> argsConfigKeys = new HashMap<>();
 
+
     public static void main(String[] args) {
         GeyserStandaloneBootstrap bootstrap = new GeyserStandaloneBootstrap();
         // Set defaults

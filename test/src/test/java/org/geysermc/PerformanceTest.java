@@ -34,6 +34,7 @@ import com.nukkitx.protocol.bedrock.BedrockServer;
 import lombok.Getter;
 import org.geysermc.connector.GeyserConnector;
 import org.geysermc.connector.network.BedrockProtocol;
+import org.geysermc.connector.network.translators.PacketTranslator;
 import org.geysermc.connector.network.translators.PacketTranslatorRegistry;
 import org.geysermc.platform.standalone.GeyserStandaloneBootstrap;
 import org.geysermc.util.handler.TestServerEventHandler;
@@ -61,10 +62,10 @@ public class PerformanceTest {
 
     private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    private final Map<BedrockPacket, List<Long>> warmUpDirectClientConnectionTimes = new HashMap<>();
-    private final Map<BedrockPacket, List<Long>> directClientConnectionTimes = new HashMap<>();
-    private final Map<BedrockPacket, List<Long>> warmUpGeyserClientConnectionTimes = new HashMap<>();
-    private final Map<BedrockPacket, List<Long>> geyserClientConnectionTimes = new HashMap<>();
+    private final List<Long> warmUpDirectClientConnectionTimes = new ArrayList<>();
+    private final List<Long> directClientConnectionTimes = new ArrayList<>();
+    private final List<Long> warmUpGeyserClientConnectionTimes = new ArrayList<>();
+    private final List<Long> geyserClientConnectionTimes = new ArrayList<>();
 
     private Map<BedrockPacket, Long> clientPackets = new LinkedHashMap<>();
 
@@ -100,11 +101,6 @@ public class PerformanceTest {
 
         clientPackets = PacketTranslatorRegistry.clientPackets;
 
-        for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
-            warmUpDirectClientConnectionTimes.put(entry.getKey(), new ArrayList<>());
-            directClientConnectionTimes.put(entry.getKey(), new ArrayList<>());
-        }
-
         System.out.println(clientPackets);
     }
 
@@ -113,7 +109,7 @@ public class PerformanceTest {
         Map<BedrockPacket, Long> sendPacket = new HashMap<>();
 
         BedrockServer server = new BedrockServer(new InetSocketAddress("0.0.0.0", 19132));
-        server.setHandler(new TestServerEventHandler(sendPacket, warmUpDirectClientConnectionTimes));
+        server.setHandler(new TestServerEventHandler(sendPacket));
 
         server.bind().join();
 
@@ -131,6 +127,8 @@ public class PerformanceTest {
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
             System.out.println("Warmpup " + i);
 
+            long start = System.nanoTime();
+
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
                 sendPacket.put(entry.getKey(), System.currentTimeMillis());
                 client.getSession().sendPacket(entry.getKey());
@@ -138,12 +136,16 @@ public class PerformanceTest {
                 Thread.sleep(entry.getValue());
             }
 
+            long end = System.nanoTime();
+
+            warmUpDirectClientConnectionTimes.add(end - start);
+
             while (!sendPacket.isEmpty()) {
                 Thread.sleep(10);
             }
         }
 
-        server.setHandler(new TestServerEventHandler(sendPacket, directClientConnectionTimes));
+        server.setHandler(new TestServerEventHandler(sendPacket));
 
         client.close();
 
@@ -158,12 +160,18 @@ public class PerformanceTest {
         for (int i = 0; i < TEST_ITERATIONS; i++) {
             System.out.println(i);
 
+            long start = System.nanoTime();
+
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
                 sendPacket.put(entry.getKey(), System.currentTimeMillis());
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
             }
+
+            long end = System.nanoTime();
+
+            directClientConnectionTimes.add(end - start);
 
             while (!sendPacket.isEmpty()) {
                 Thread.sleep(10);

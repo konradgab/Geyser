@@ -193,19 +193,12 @@ import java.util.Map;
 
 public class TestServerPacketHandler implements BedrockPacketHandler {
     private final Map<BedrockPacket, Long> sendPacket;
-    private final Map<BedrockPacket, List<Long>> directClientConnectionTimes;
 
-    public TestServerPacketHandler(Map<BedrockPacket, Long> sendPacket, Map<BedrockPacket, List<Long>> directClientConnectionTimes) {
+    public TestServerPacketHandler(Map<BedrockPacket, Long> sendPacket) {
         this.sendPacket = sendPacket;
-        this.directClientConnectionTimes = directClientConnectionTimes;
     }
 
     boolean defaultHandler(BedrockPacket packet) {
-        if (sendPacket.containsKey(packet)) {
-            long startTime = sendPacket.remove(packet);
-            long endTime = System.currentTimeMillis();
-            directClientConnectionTimes.get(packet).add(endTime - startTime);
-        }
         return true;
     }
 

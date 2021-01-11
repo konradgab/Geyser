@@ -25,11 +25,19 @@
 
 package org.geysermc;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.steveice10.packetlib.Server;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
 import com.nukkitx.protocol.bedrock.BedrockServer;
+import com.nukkitx.protocol.bedrock.packet.ResourcePackClientResponsePacket;
+import com.nukkitx.protocol.bedrock.packet.TextPacket;
 import org.geysermc.connector.GeyserConnector;
 import org.geysermc.connector.network.BedrockProtocol;
+import org.geysermc.connector.network.session.GeyserSession;
+import org.geysermc.connector.network.session.auth.AuthData;
+import org.geysermc.connector.network.session.auth.BedrockClientData;
 import org.geysermc.connector.network.translators.PacketTranslatorRegistry;
 import org.geysermc.platform.standalone.GeyserStandaloneBootstrap;
 import org.geysermc.util.handler.TestServerEventHandler;
@@ -43,17 +51,23 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.geysermc.util.helper.TestHelper.startBedrockClient;
+import static org.geysermc.util.helper.TestHelper.startGeyser;
+import static org.geysermc.util.helper.TestHelper.startJavaServer;
 
 public class PerformanceTest {
+    private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
     private static final int WARM_UP_ITERATIONS = 3;
     private static final int TEST_ITERATIONS = 10;
 
     private final List<Long> warmUpDirectClientConnectionTimes = new ArrayList<>();
+    private final List<Long> warmUpConnectionViaGeyserTimes = new ArrayList<>();
     private final List<Long> directClientConnectionTimes = new ArrayList<>();
-    private final List<Long> warmUpGeyserClientConnectionTimes = new ArrayList<>();
-    private final List<Long> geyserClientConnectionTimes = new ArrayList<>();
+    private final List<Long> connectionViaGeyserTimes = new ArrayList<>();
 
     private Map<BedrockPacket, Long> clientPackets = new LinkedHashMap<>();
 
@@ -64,17 +78,17 @@ public class PerformanceTest {
         Thread spigotThread = new Thread(runnable, "spigot");
         spigotThread.start();
 
-        new Thread(() -> GeyserStandaloneBootstrap.main(new String[] {"--nogui"}), "geyser").start();
+        new Thread(() -> GeyserStandaloneBootstrap.main(new String[]{"--nogui"}), "geyser").start();
 
         while (GeyserConnector.getInstance() == null) {
             Thread.sleep(1000);
         }
 
-        while(GeyserConnector.getInstance().getPlayers().size() != 1) {
+        while (GeyserConnector.getInstance().getPlayers().size() != 1) {
             Thread.sleep(1000);
         }
 
-        while(GeyserConnector.getInstance().getPlayers().size() == 1) {
+        while (GeyserConnector.getInstance().getPlayers().size() == 1) {
             Thread.sleep(1000);
         }
 
@@ -108,6 +122,16 @@ public class PerformanceTest {
         while (server.getRakNet().getSessionCount() != 1) {
             Thread.sleep(10);
         }
+
+        TextPacket packet2 = new TextPacket();
+        packet2.setMessage("Test");
+        packet2.setType(TextPacket.Type.ANNOUNCEMENT);
+        packet2.setNeedsTranslation(false);
+        packet2.setSourceName("Test");
+        packet2.setXuid("0");
+
+        clientPackets.put(packet2, 100L);
+
 
         // WARM UP
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
@@ -151,6 +175,85 @@ public class PerformanceTest {
 
         System.out.println(warmUpDirectClientConnectionTimes);
         System.out.println(directClientConnectionTimes);
+    }
+
+    @Test
+    public void connectionViaGeyser() throws IOException, InterruptedException {
+        Server javaServer = startJavaServer();
+
+        javaServer.bind();
+
+        AtomicReference<GeyserSession> session = new AtomicReference<>();
+
+        GeyserConnector connector = startGeyser(session);
+
+        BedrockClient client = startBedrockClient();
+
+        InetSocketAddress connectionAddress = new InetSocketAddress("127.0.0.1", 19132);
+        client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
+        client.getSession().setLogging(false);
+
+        while (session.get() == null) {
+            Thread.sleep(200);
+        }
+
+        session.get().setAuthData(new AuthData("TestSession", UUID.randomUUID(), "0"));
+        session.get().setClientData(JSON_MAPPER.readValue("{\"LanguageCode\":\"en_us\"}", BedrockClientData.class));
+
+        ResourcePackClientResponsePacket packet1 = new ResourcePackClientResponsePacket();
+        packet1.setStatus(ResourcePackClientResponsePacket.Status.COMPLETED);
+        client.getSession().sendPacket(packet1);
+
+
+        while (session.get().getRemoteServer() == null) {
+            Thread.sleep(200);
+        }
+
+        session.get().authenticate("Test");
+
+        while (!connector.getPlayers().contains(session.get())) {
+            Thread.sleep(200);
+        }
+
+        // WARM UP
+        for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
+            System.out.println("Warm-up " + i);
+
+            long start = System.nanoTime();
+
+            for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
+                client.getSession().sendPacket(entry.getKey());
+
+                Thread.sleep(entry.getValue());
+            }
+
+            long end = System.nanoTime();
+
+            warmUpConnectionViaGeyserTimes.add(end - start);
+
+        }
+
+        for (int i = 0; i < TEST_ITERATIONS; i++) {
+            System.out.println(i);
+
+            long start = System.nanoTime();
+
+            for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
+                client.getSession().sendPacket(entry.getKey());
+
+                Thread.sleep(entry.getValue());
+            }
+
+            long end = System.nanoTime();
+
+            connectionViaGeyserTimes.add(end - start);
+        }
+
+        client.close();
+        javaServer.close();
+
+        System.out.println(warmUpConnectionViaGeyserTimes);
+        System.out.println(connectionViaGeyserTimes);
     }
 }
 

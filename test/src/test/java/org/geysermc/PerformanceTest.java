@@ -41,19 +41,26 @@ import org.geysermc.connector.network.session.auth.BedrockClientData;
 import org.geysermc.connector.network.translators.PacketTranslatorRegistry;
 import org.geysermc.platform.standalone.GeyserStandaloneBootstrap;
 import org.geysermc.util.adapter.PerformanceServerAdapter;
+import org.geysermc.util.adapter.UnderLoadServerAdapter;
 import org.geysermc.util.handler.TestServerEventHandler;
+import org.geysermc.util.runnable.UnderLoadTestClientRunnable;
 import org.geysermc.util.runnable.TestSpigotRunnable;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static org.geysermc.util.helper.TestHelper.*;
 
@@ -69,6 +76,8 @@ public class PerformanceTest {
     private final List<Long> connectionViaGeyserTimes = new ArrayList<>();
 
     private static Map<BedrockPacket, Long> clientPackets = new LinkedHashMap<>();
+
+    private static long captureTime = 0;
 
     @BeforeClass
     @SuppressWarnings("unchecked")
@@ -87,9 +96,13 @@ public class PerformanceTest {
             Thread.sleep(1000);
         }
 
+        long start = System.currentTimeMillis();
+
         while (GeyserConnector.getInstance().getPlayers().size() == 1) {
             Thread.sleep(1000);
         }
+
+        captureTime = System.currentTimeMillis() - start;
 
         GeyserConnector.getInstance().shutdown();
 
@@ -109,10 +122,12 @@ public class PerformanceTest {
         TextPacket endPacket = createTestPacket("End");
         clientPackets.put(endPacket, 20L);
 
-        System.out.println(clientPackets.size());
+        System.out.println("Packets capture: " + clientPackets.size() + ".");
+        System.out.println("Capture time: " + captureTime + "ms.");
     }
 
     @Test
+    @Ignore
     public void directClientConnection() throws Exception {
         BedrockServer server = new BedrockServer(new InetSocketAddress("0.0.0.0", 19132));
         TestServerEventHandler handler = new TestServerEventHandler();
@@ -193,11 +208,18 @@ public class PerformanceTest {
         client.close();
         server.close();
 
-        System.out.println(warmUpDirectClientConnectionTimes.stream().mapToLong(Long::longValue).average());
-        System.out.println(directClientConnectionTimes.stream().mapToLong(Long::longValue).average());
+        System.out.println(warmUpDirectClientConnectionTimes.stream()
+                .map(value -> new BigDecimal(value).setScale(9, RoundingMode.HALF_UP))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(new BigDecimal(2), RoundingMode.HALF_UP));
+        System.out.println(directClientConnectionTimes.stream()
+                .map(value -> new BigDecimal(value).setScale(9, RoundingMode.HALF_UP))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(new BigDecimal(2), RoundingMode.HALF_UP));
     }
 
     @Test
+    @Ignore
     public void connectionViaGeyser() throws IOException, InterruptedException {
         Server javaServer = startJavaServer();
 
@@ -298,15 +320,82 @@ public class PerformanceTest {
             long end = System.nanoTime();
 
             connectionViaGeyserTimes.add(end - start);
-
         }
 
         client.close();
         javaServer.close();
         connector.shutdown();
 
-        System.out.println(warmUpConnectionViaGeyserTimes.stream().mapToLong(Long::longValue).average());
-        System.out.println(connectionViaGeyserTimes.stream().mapToLong(Long::longValue).average());
+        System.out.println(warmUpConnectionViaGeyserTimes.stream()
+                .map(value -> new BigDecimal(value).setScale(9, RoundingMode.HALF_UP))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(new BigDecimal(2), RoundingMode.HALF_UP));
+        System.out.println(connectionViaGeyserTimes.stream()
+                .map(value -> new BigDecimal(value).setScale(9, RoundingMode.HALF_UP))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(new BigDecimal(2), RoundingMode.HALF_UP));
+
     }
+
+    @Test
+    public void underLoadTest() throws InterruptedException, IOException {
+        Server javaServer = startJavaServer();
+
+        UnderLoadServerAdapter adapter = new UnderLoadServerAdapter();
+
+        javaServer.addListener(adapter);
+
+        javaServer.bind();
+
+        Map<Integer, GeyserSession> sessions = new HashMap<>();
+        GeyserConnector connector = startGeyserUnderLoad(sessions);
+
+        List<Thread> warmUpThreads = new ArrayList<>();
+
+        for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
+            List<Long> threadTime = new ArrayList<>();
+            Runnable runnable = new UnderLoadTestClientRunnable(threadTime, clientPackets, sessions);
+            Thread clientThread = new Thread(runnable);
+            warmUpThreads.add(clientThread);
+            clientThread.start();
+        }
+
+        for (Thread thread : warmUpThreads) {
+            thread.join();
+        }
+
+        Map<Integer, List<BigDecimal>> averageTimes = new LinkedHashMap<>();
+        for (int i = 102; i < 200; i += 10) {
+            List<List<Long>> times = new ArrayList<>();
+            List<Thread> threads = new ArrayList<>();
+            for (int j = 0; j < i; j++) {
+                List<Long> threadTime = new ArrayList<>();
+                times.add(threadTime);
+                Runnable runnable = new UnderLoadTestClientRunnable(threadTime, clientPackets, sessions);
+                Thread clientThread = new Thread(runnable);
+                threads.add(clientThread);
+                clientThread.start();
+            }
+            for (Thread thread : threads) {
+                thread.join();
+            }
+            List<BigDecimal> threadAverage = times.stream()
+                    .map(
+                        threadTimes -> threadTimes.stream()
+                                .map(BigDecimal::new)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                                .divide(new BigDecimal(threadTimes.size()), RoundingMode.HALF_UP)
+                    )
+                    .collect(Collectors.toList());
+            System.out.println(threadAverage);
+            averageTimes.put(i, threadAverage);
+        }
+
+        System.out.println(averageTimes);
+
+        connector.shutdown();
+        javaServer.close();
+    }
+
 }
 

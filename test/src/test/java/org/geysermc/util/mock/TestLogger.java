@@ -63,7 +63,7 @@ public class TestLogger implements GeyserLogger, CommandSender {
 
     @Override
     public void info(String message) {
-        System.err.println(printConsole(ChatColor.RESET + ChatColor.BOLD + message, colored));
+        //System.err.println(printConsole(ChatColor.RESET + ChatColor.BOLD + message, colored));
     }
 
     @Override

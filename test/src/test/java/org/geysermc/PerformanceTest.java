@@ -106,7 +106,7 @@ public class PerformanceTest {
 
         clientPackets = new LinkedHashMap<>(PacketTranslatorRegistry.clientPackets);
 
-        TextPacket endPacket = createTestPacket("Koniec");
+        TextPacket endPacket = createTestPacket("End");
         clientPackets.put(endPacket, 20L);
 
         System.out.println(clientPackets.size());
@@ -151,7 +151,7 @@ public class PerformanceTest {
 
             while (!handler.getPacketHandler().isLastReceived()) {
                 client.getSession().sendPacket(afterEndPacket);
-                Thread.sleep(3);
+                Thread.sleep(0,100);
             }
 
             long end = System.nanoTime();

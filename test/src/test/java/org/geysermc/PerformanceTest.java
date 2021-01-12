@@ -154,6 +154,7 @@ public class PerformanceTest {
 
             while (!handler.getPacketHandler().isLastReceived()) {
                 client.getSession().sendPacket(afterEndPacket);
+
                 Thread.sleep(0, 100);
             }
 

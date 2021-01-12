@@ -45,7 +45,7 @@ public class PerformanceServerAdapter extends ServerAdapter {
             public void packetReceived(PacketReceivedEvent event) {
                 if ((event.getPacket() instanceof ClientChatPacket)){
                     switch (((ClientChatPacket) event.getPacket()).getMessage()) {
-                        case "Koniec" :
+                        case "End" :
                             lastReceived = true;
                             break;
                         case "Start" : lastReceived = false;

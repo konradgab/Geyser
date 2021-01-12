@@ -132,6 +132,10 @@
                     <groupId>com.github.steveice10</groupId>
                     <artifactId>packetlib</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.github.steveice10</groupId>
+                    <artifactId>mcauthlib</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -203,6 +207,11 @@
             <artifactId>mockito-core</artifactId>
             <version>3.6.28</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.GeyserMC</groupId>
+            <artifactId>MCAuthLib</artifactId>
+            <version>0e48a094f2</version>
         </dependency>
     </dependencies>
 

@@ -41,6 +41,7 @@ import org.geysermc.connector.configuration.GeyserJacksonConfiguration;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.ping.GeyserLegacyPingPassthrough;
 import org.geysermc.connector.ping.IGeyserPingPassthrough;
+import org.geysermc.util.mock.PerformanceConnectorServerEventHandler;
 import org.geysermc.util.mock.TestConfiguration;
 import org.geysermc.util.mock.TestLogger;
 import org.geysermc.util.mock.TestConnectorServerEventHandler;
@@ -51,6 +52,7 @@ import java.net.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -104,6 +106,37 @@ public class TestHelper {
         return connector;
     }
 
+    public static GeyserConnector startGeyserUnderLoad(Map<Integer, GeyserSession> sessions) throws IOException, InterruptedException {
+        GeyserJacksonConfiguration configuration = new TestConfiguration();
+        configuration.getRemote().setAddress("127.0.0.1");
+
+        CommandManager commandManager = mock(CommandManager.class);
+        GeyserLogger logger = new TestLogger();
+
+        GeyserBootstrap bootstrap = mock(GeyserBootstrap.class, CALLS_REAL_METHODS);
+        when(bootstrap.getGeyserConfig()).thenReturn(configuration);
+        when(bootstrap.getGeyserLogger()).thenReturn(logger);
+        when(bootstrap.getGeyserCommandManager()).thenReturn(commandManager);
+
+        Path testPath = Paths.get("testData");
+        Files.createDirectories(testPath);
+        when(bootstrap.getConfigFolder()).thenReturn(testPath);
+
+        GeyserConnector connector = GeyserConnector.start(PlatformType.STANDALONE, bootstrap);
+
+        while (connector.getMetrics() == null) {
+            Thread.sleep(1000);
+        }
+
+        IGeyserPingPassthrough pingPassthrough = GeyserLegacyPingPassthrough.init(connector);
+        when(connector.getBootstrap().getGeyserPingPassthrough()).thenReturn(pingPassthrough);
+
+        PerformanceConnectorServerEventHandler testConnectorServerEventHandler = new PerformanceConnectorServerEventHandler(connector, sessions);
+        connector.getBedrockServer().setHandler(testConnectorServerEventHandler);
+
+        return connector;
+    }
+
     public static TextPacket createTestPacket (String message) {
         TextPacket textPacket = new TextPacket();
         textPacket.setMessage(message);
@@ -115,12 +148,18 @@ public class TestHelper {
     }
 
     public static BedrockClient startBedrockClient() {
-        InetSocketAddress address = new InetSocketAddress("0.0.0.0", ThreadLocalRandom.current().nextInt(20000, 60000));
-        BedrockClient client = new BedrockClient(address);
+        while (true) {
+            InetSocketAddress address = new InetSocketAddress("0.0.0.0", ThreadLocalRandom.current().nextInt(20000, 60000));
+            BedrockClient client = new BedrockClient(address);
 
-        client.bind().join();
+            try {
+                client.bind().join();
+                return client;
+            } catch (Exception e) {
+                //System.out.println(e.getMessage());
+            }
 
-        return client;
+        }
     }
 
 }

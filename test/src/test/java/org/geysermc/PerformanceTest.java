@@ -106,7 +106,7 @@ public class PerformanceTest {
 
         clientPackets = new LinkedHashMap<>(PacketTranslatorRegistry.clientPackets);
 
-        TextPacket endPacket = createTestPacket("Koniec");
+        TextPacket endPacket = createTestPacket("End");
         clientPackets.put(endPacket, 20L);
 
         System.out.println(clientPackets.size());
@@ -131,17 +131,20 @@ public class PerformanceTest {
         client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
         client.getSession().setLogging(false);
 
-        while (server.getRakNet().getSessionCount() != 1) {
+        while (handler.getPacketHandler() == null) {
             Thread.sleep(10);
         }
 
         // WARM UP
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
-            client.getSession().sendPacket(startPacket);
             System.out.println("Warm-up " + i);
+            client.getSession().sendPacket(startPacket);
+
+            while (handler.getPacketHandler().isLastReceived()) {
+                Thread.sleep(0, 100);
+            }
 
             long start = System.nanoTime();
-
 
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
                 client.getSession().sendPacket(entry.getKey());
@@ -151,7 +154,7 @@ public class PerformanceTest {
 
             while (!handler.getPacketHandler().isLastReceived()) {
                 client.getSession().sendPacket(afterEndPacket);
-                Thread.sleep(3);
+                Thread.sleep(0, 100);
             }
 
             long end = System.nanoTime();
@@ -160,8 +163,13 @@ public class PerformanceTest {
         }
 
         for (int i = 0; i < TEST_ITERATIONS; i++) {
-            client.getSession().sendPacket(startPacket);
             System.out.println(i);
+
+            client.getSession().sendPacket(startPacket);
+
+            while (handler.getPacketHandler().isLastReceived()) {
+                Thread.sleep(0, 100);
+            }
 
             long start = System.nanoTime();
 
@@ -179,7 +187,6 @@ public class PerformanceTest {
             long end = System.nanoTime();
 
             directClientConnectionTimes.add(end - start);
-            Thread.sleep(1);
         }
 
         client.close();
@@ -237,8 +244,13 @@ public class PerformanceTest {
 
         // WARM UP
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
-            client.getSession().sendPacket(startPacket);
             System.out.println("Warm-up " + i);
+
+            client.getSession().sendPacket(startPacket);
+
+            while (adapter.isLastReceived()) {
+                Thread.sleep(0, 100);
+            }
 
             long start = System.nanoTime();
 
@@ -257,15 +269,18 @@ public class PerformanceTest {
             long end = System.nanoTime();
 
             warmUpConnectionViaGeyserTimes.add(end - start);
-            Thread.sleep(1);
         }
 
         for (int i = 0; i < TEST_ITERATIONS; i++) {
-            client.getSession().sendPacket(startPacket);
             System.out.println(i);
 
-            long start = System.nanoTime();
+            client.getSession().sendPacket(startPacket);
 
+            while (adapter.isLastReceived()) {
+                Thread.sleep(0, 100);
+            }
+
+            long start = System.nanoTime();
 
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
                 client.getSession().sendPacket(entry.getKey());
@@ -277,14 +292,12 @@ public class PerformanceTest {
             while (!adapter.isLastReceived()) {
                 client.getSession().sendPacket(afterEndPacket);
                 Thread.sleep(0, 100);
-
             }
 
             long end = System.nanoTime();
 
             connectionViaGeyserTimes.add(end - start);
 
-            Thread.sleep(1);
         }
 
         client.close();

@@ -25,6 +25,7 @@
 
 package org.geysermc.util.adapter;
 
+import com.github.steveice10.mc.protocol.packet.ingame.client.ClientChatPacket;
 import com.github.steveice10.packetlib.event.server.ServerAdapter;
 import com.github.steveice10.packetlib.event.server.SessionAddedEvent;
 import com.github.steveice10.packetlib.event.session.PacketReceivedEvent;
@@ -35,16 +36,25 @@ import lombok.Setter;
 @Getter
 @Setter
 public class PerformanceServerAdapter extends ServerAdapter {
-    private long counter = 0;
+    private boolean lastReceived = false;
 
     @Override
     public void sessionAdded(SessionAddedEvent event) {
         event.getSession().addListener(new SessionAdapter() {
             @Override
             public void packetReceived(PacketReceivedEvent event) {
-                counter++;
+                if ((event.getPacket() instanceof ClientChatPacket)){
+                    switch (((ClientChatPacket) event.getPacket()).getMessage()) {
+                        case "Koniec" :
+                            lastReceived = true;
+                            break;
+                        case "Start" : lastReceived = false;
+                        default:
+                            break;
+                    }
             }
-        });
-    }
-
+        }
+    });
 }
+}
+

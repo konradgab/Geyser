@@ -32,6 +32,7 @@ import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
 import com.nukkitx.protocol.bedrock.BedrockServer;
 import com.nukkitx.protocol.bedrock.packet.ResourcePackClientResponsePacket;
+import com.nukkitx.protocol.bedrock.packet.TextPacket;
 import org.geysermc.connector.GeyserConnector;
 import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.network.session.GeyserSession;
@@ -54,9 +55,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.geysermc.util.helper.TestHelper.startBedrockClient;
-import static org.geysermc.util.helper.TestHelper.startGeyser;
-import static org.geysermc.util.helper.TestHelper.startJavaServer;
+import static org.geysermc.util.helper.TestHelper.*;
 
 public class PerformanceTest {
     private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
@@ -101,11 +100,14 @@ public class PerformanceTest {
             e.printStackTrace();
         }
 
-        while(runnable.isWorking()) {
+        while (runnable.isWorking()) {
             Thread.sleep(200);
         }
 
         clientPackets = new LinkedHashMap<>(PacketTranslatorRegistry.clientPackets);
+
+        TextPacket endPacket = createTestPacket("Koniec");
+        clientPackets.put(endPacket, 20L);
 
         System.out.println(clientPackets.size());
     }
@@ -120,6 +122,11 @@ public class PerformanceTest {
 
         BedrockClient client = startBedrockClient();
 
+        TextPacket afterEndPacket = createTestPacket("");
+
+        TextPacket startPacket = createTestPacket("Start");
+
+
         InetSocketAddress connectionAddress = new InetSocketAddress("127.0.0.1", 19132);
         client.connect(connectionAddress).join().setPacketCodec(BedrockProtocol.DEFAULT_BEDROCK_CODEC);
         client.getSession().setLogging(false);
@@ -130,21 +137,21 @@ public class PerformanceTest {
 
         // WARM UP
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
+            client.getSession().sendPacket(startPacket);
             System.out.println("Warm-up " + i);
 
             long start = System.nanoTime();
 
-            long counter = 0;
 
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
-                counter++;
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
             }
 
-            while (counter != handler.getPacketHandler().getCounter()) {
-
+            while (!handler.getPacketHandler().isLastReceived()) {
+                client.getSession().sendPacket(afterEndPacket);
+                Thread.sleep(3);
             }
 
             long end = System.nanoTime();
@@ -153,25 +160,26 @@ public class PerformanceTest {
         }
 
         for (int i = 0; i < TEST_ITERATIONS; i++) {
+            client.getSession().sendPacket(startPacket);
             System.out.println(i);
 
             long start = System.nanoTime();
 
-            long counter = 0;
-
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
-                counter++;
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
             }
 
-            while (counter != handler.getPacketHandler().getCounter()) {
+            while (!handler.getPacketHandler().isLastReceived()) {
+                client.getSession().sendPacket(afterEndPacket);
+                Thread.sleep(0, 100);
             }
 
             long end = System.nanoTime();
 
             directClientConnectionTimes.add(end - start);
+            Thread.sleep(1);
         }
 
         client.close();
@@ -202,7 +210,7 @@ public class PerformanceTest {
         client.getSession().setLogging(false);
 
         while (session.get() == null) {
-            Thread.sleep(200);
+            Thread.sleep(10);
         }
 
         session.get().setAuthData(new AuthData("TestSession", UUID.randomUUID(), "0"));
@@ -214,68 +222,69 @@ public class PerformanceTest {
 
 
         while (session.get().getRemoteServer() == null) {
-            Thread.sleep(200);
+            Thread.sleep(10);
         }
 
         session.get().authenticate("Test");
 
         while (!connector.getPlayers().contains(session.get())) {
-            Thread.sleep(200);
+            Thread.sleep(10);
         }
+
+        TextPacket afterEndPacket = createTestPacket("");
+
+        TextPacket startPacket = createTestPacket("Start");
 
         // WARM UP
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
+            client.getSession().sendPacket(startPacket);
             System.out.println("Warm-up " + i);
-
-            adapter.setCounter(0);
 
             long start = System.nanoTime();
 
-            long counter = 0;
-
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
-                counter++;
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
             }
 
-            while (session.get().isClosed()) {
+            while (!adapter.isLastReceived()) {
+                client.getSession().sendPacket(afterEndPacket);
+                Thread.sleep(0, 100);
             }
-
-            System.out.println(adapter.getCounter());
 
 
             long end = System.nanoTime();
 
             warmUpConnectionViaGeyserTimes.add(end - start);
-
+            Thread.sleep(1);
         }
 
         for (int i = 0; i < TEST_ITERATIONS; i++) {
+            client.getSession().sendPacket(startPacket);
             System.out.println(i);
-
-            adapter.setCounter(0);
 
             long start = System.nanoTime();
 
-            long counter = 0;
 
             for (Map.Entry<BedrockPacket, Long> entry : clientPackets.entrySet()) {
-                counter++;
                 client.getSession().sendPacket(entry.getKey());
 
                 Thread.sleep(entry.getValue());
             }
 
 
-            while (counter != adapter.getCounter()) {
+            while (!adapter.isLastReceived()) {
+                client.getSession().sendPacket(afterEndPacket);
+                Thread.sleep(0, 100);
 
             }
 
             long end = System.nanoTime();
 
             connectionViaGeyserTimes.add(end - start);
+
+            Thread.sleep(1);
         }
 
         client.close();

@@ -31,6 +31,7 @@ import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import com.github.steveice10.packetlib.Server;
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory;
 import com.nukkitx.protocol.bedrock.BedrockClient;
+import com.nukkitx.protocol.bedrock.packet.TextPacket;
 import org.geysermc.common.PlatformType;
 import org.geysermc.connector.GeyserConnector;
 import org.geysermc.connector.GeyserLogger;
@@ -101,6 +102,16 @@ public class TestHelper {
         connector.getBedrockServer().setHandler(testConnectorServerEventHandler);
 
         return connector;
+    }
+
+    public static TextPacket createTestPacket (String message) {
+        TextPacket textPacket = new TextPacket();
+        textPacket.setMessage(message);
+        textPacket.setType(TextPacket.Type.ANNOUNCEMENT);
+        textPacket.setNeedsTranslation(false);
+        textPacket.setSourceName(message);
+        textPacket.setXuid("0");
+        return textPacket;
     }
 
     public static BedrockClient startBedrockClient() {

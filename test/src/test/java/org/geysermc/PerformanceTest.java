@@ -415,8 +415,8 @@ public class PerformanceTest {
         List<Thread> warmUpThreads = new ArrayList<>();
 
         for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
-            List<Long> threadTime = new ArrayList<>();
-            Runnable runnable = new UnderLoadTestClientRunnable(threadTime, clientPackets, sessions);
+            BigDecimalResult threadTime = new BigDecimalResult(BigDecimal.ZERO);
+            Runnable runnable = new RandomJoinTestClientRunnable(threadTime, clientPackets, sessions);
             Thread clientThread = new Thread(runnable);
             warmUpThreads.add(clientThread);
             clientThread.start();

@@ -34,7 +34,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @AllArgsConstructor
-public class LongResult {
+public class BigDecimalResult {
     public BigDecimal resultTime;
 
 

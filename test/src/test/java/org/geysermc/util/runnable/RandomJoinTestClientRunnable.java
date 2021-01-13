@@ -36,7 +36,7 @@ import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.network.session.auth.AuthData;
 import org.geysermc.connector.network.session.auth.BedrockClientData;
-import org.geysermc.util.helper.LongResult;
+import org.geysermc.util.helper.BigDecimalResult;
 
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
@@ -51,7 +51,7 @@ public class RandomJoinTestClientRunnable implements Runnable {
     private final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
 
-    private final LongResult threadTime;
+    private final BigDecimalResult threadTime;
     private final Map<BedrockPacket, Long> clientPackets;
     private final Map<Integer, GeyserSession> sessions;
 

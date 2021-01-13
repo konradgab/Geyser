@@ -43,7 +43,7 @@ import org.geysermc.platform.standalone.GeyserStandaloneBootstrap;
 import org.geysermc.util.adapter.PerformanceServerAdapter;
 import org.geysermc.util.adapter.UnderLoadServerAdapter;
 import org.geysermc.util.handler.TestServerEventHandler;
-import org.geysermc.util.helper.LongResult;
+import org.geysermc.util.helper.BigDecimalResult;
 import org.geysermc.util.runnable.RandomJoinTestClientRunnable;
 import org.geysermc.util.runnable.UnderLoadTestClientRunnable;
 import org.geysermc.util.runnable.TestSpigotRunnable;
@@ -428,10 +428,10 @@ public class PerformanceTest {
 
         Map<Integer, BigDecimal> averageTimes = new LinkedHashMap<>();
         for (int i = 102; i < 200; i += 10) {
-            List<LongResult> times = new ArrayList<>();
+            List<BigDecimalResult> times = new ArrayList<>();
             List<Thread> threads = new ArrayList<>();
             for (int j = 0; j < i; j++) {
-                LongResult threadTime = new LongResult(BigDecimal.ZERO);
+                BigDecimalResult threadTime = new BigDecimalResult(BigDecimal.ZERO);
                 times.add(threadTime);
                 Runnable runnable = new RandomJoinTestClientRunnable(threadTime, clientPackets, sessions);
                 Thread clientThread = new Thread(runnable);
@@ -441,13 +441,13 @@ public class PerformanceTest {
             for (Thread thread : threads) {
                 thread.join();
             }
-            BigDecimal threadAverage = times.stream()
-                    .map(LongResult::getResultTime)
+            BigDecimal average = times.stream()
+                    .map(BigDecimalResult::getResultTime)
                     .reduce(BigDecimal.ZERO, BigDecimal::add)
                     .divide(BigDecimal.valueOf(times.size()), RoundingMode.HALF_UP);
 
-            System.out.println(threadAverage);
-            averageTimes.put(i, threadAverage);
+            System.out.println(average);
+            averageTimes.put(i, average);
         }
 
         System.out.println(averageTimes);
@@ -455,7 +455,6 @@ public class PerformanceTest {
         connector.shutdown();
         javaServer.close();
     }
-
 
 }
 

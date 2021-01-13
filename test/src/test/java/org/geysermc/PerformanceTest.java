@@ -43,6 +43,8 @@ import org.geysermc.platform.standalone.GeyserStandaloneBootstrap;
 import org.geysermc.util.adapter.PerformanceServerAdapter;
 import org.geysermc.util.adapter.UnderLoadServerAdapter;
 import org.geysermc.util.handler.TestServerEventHandler;
+import org.geysermc.util.helper.LongResult;
+import org.geysermc.util.runnable.RandomJoinTestClientRunnable;
 import org.geysermc.util.runnable.UnderLoadTestClientRunnable;
 import org.geysermc.util.runnable.TestSpigotRunnable;
 import org.junit.BeforeClass;
@@ -396,6 +398,64 @@ public class PerformanceTest {
         connector.shutdown();
         javaServer.close();
     }
+
+    @Test
+    public void underLoadTestRandomConnections() throws InterruptedException, IOException {
+        Server javaServer = startJavaServer();
+
+        UnderLoadServerAdapter adapter = new UnderLoadServerAdapter();
+
+        javaServer.addListener(adapter);
+
+        javaServer.bind();
+
+        Map<Integer, GeyserSession> sessions = new HashMap<>();
+        GeyserConnector connector = startGeyserUnderLoad(sessions);
+
+        List<Thread> warmUpThreads = new ArrayList<>();
+
+        for (int i = 0; i < WARM_UP_ITERATIONS; i++) {
+            List<Long> threadTime = new ArrayList<>();
+            Runnable runnable = new UnderLoadTestClientRunnable(threadTime, clientPackets, sessions);
+            Thread clientThread = new Thread(runnable);
+            warmUpThreads.add(clientThread);
+            clientThread.start();
+        }
+
+        for (Thread thread : warmUpThreads) {
+            thread.join();
+        }
+
+        Map<Integer, BigDecimal> averageTimes = new LinkedHashMap<>();
+        for (int i = 102; i < 200; i += 10) {
+            List<LongResult> times = new ArrayList<>();
+            List<Thread> threads = new ArrayList<>();
+            for (int j = 0; j < i; j++) {
+                LongResult threadTime = new LongResult(BigDecimal.ZERO);
+                times.add(threadTime);
+                Runnable runnable = new RandomJoinTestClientRunnable(threadTime, clientPackets, sessions);
+                Thread clientThread = new Thread(runnable);
+                threads.add(clientThread);
+                clientThread.start();
+            }
+            for (Thread thread : threads) {
+                thread.join();
+            }
+            BigDecimal threadAverage = times.stream()
+                    .map(LongResult::getResultTime)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .divide(BigDecimal.valueOf(times.size()), RoundingMode.HALF_UP);
+
+            System.out.println(threadAverage);
+            averageTimes.put(i, threadAverage);
+        }
+
+        System.out.println(averageTimes);
+
+        connector.shutdown();
+        javaServer.close();
+    }
+
 
 }
 
